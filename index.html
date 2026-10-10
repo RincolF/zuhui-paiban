@@ -1,0 +1,1813 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="组会排班"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="theme-color" content="#ffffff"/>
+<link rel="apple-touch-icon" href="icon-180.png"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="icon" href="icon-192.png"/>
+<title>组会排班</title>
+<style>
+@font-face{font-family:"DengXian";src:url("file:///Applications/Microsoft%20Excel.app/Contents/Resources/DFonts/Deng.ttf") format("truetype");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"DengXian";src:url("file:///Applications/Microsoft%20Excel.app/Contents/Resources/DFonts/Dengb.ttf") format("truetype");font-weight:700;font-style:normal;font-display:swap}
+*{box-sizing:border-box}
+:root{
+  --font:"DengXian","等线","PingFang SC","Hiragino Sans GB","Microsoft YaHei",-apple-system,system-ui,sans-serif;
+  --bg:#eceef1;--card:#fff;--line:#dde1e6;--line2:#c7cdd4;
+  --ink:#14181f;--muted:#6b7480;--soft:#f3f5f7;
+  --accent:#1a6fd4;--accent-ink:#0f4c96;--accent-soft:#e8f1fd;
+  --holiday:#4fadea;
+  --warn:#9a5606;--warn-soft:#fdf3e2;--err:#bf2b26;--err-soft:#fdeceb;--ok:#0f7a53;--ok-soft:#e8f6f0;
+}
+html,body{height:100%}
+body{margin:0;font-family:var(--font);font-size:14px;color:var(--ink);background:var(--bg);
+  display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.ico{display:block;flex:0 0 auto}
+
+/* ---------- 顶栏 ---------- */
+.appbar{flex:0 0 auto;height:56px;display:flex;align-items:center;gap:16px;padding:0 16px;background:#fff;border-bottom:1px solid var(--line);z-index:20}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand .mark{width:30px;height:30px;border-radius:8px;background:var(--accent);color:#fff;display:grid;place-items:center;flex:0 0 auto}
+.brand h1{margin:0;font-size:15px;font-weight:700;letter-spacing:0}
+.brand p{margin:1px 0 0;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabs{display:flex;gap:2px;margin-left:auto;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:3px}
+.tab{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border:0;border-radius:7px;background:transparent;font:inherit;font-size:13.5px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.tab:hover{color:var(--ink)}
+.tab.active{background:#fff;color:var(--ink);font-weight:700;box-shadow:0 1px 2px rgba(16,24,40,.12)}
+.save{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);min-width:74px;justify-content:flex-end}
+.save .dot{width:6px;height:6px;border-radius:99px;background:var(--ok);transition:opacity .3s}
+.save.flash .dot{opacity:.25}
+
+/* ---------- 布局 ---------- */
+main{flex:1;overflow:auto;padding:16px 16px 40px}
+.view{display:none}
+.view.active{display:block}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.toolbar .grow{flex:1 1 40px}
+.stage{display:flex;gap:18px;align-items:flex-start}
+.col-sheet{flex:0 0 auto}
+.col-side{flex:1 1 300px;min-width:280px;max-width:410px;display:flex;flex-direction:column;gap:14px}
+
+.btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border:1px solid var(--line2);border-radius:8px;background:#fff;color:var(--ink);font:inherit;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#f7f9fb;border-color:#aab3bd}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.btn.primary:hover{background:#1560bb;border-color:#1560bb}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn.ghost:hover{background:var(--soft);color:var(--ink)}
+.btn.danger:hover{background:var(--err-soft);border-color:#e9b6b3;color:var(--err)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.sm{height:30px;padding:0 10px;font-size:13px}
+.fld{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 10px;background:#fff;border:1px solid var(--line2);border-radius:8px}
+.fld>span{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.fld input{border:0;background:transparent;font:inherit;font-size:13.5px;color:var(--ink);outline:none;padding:0}
+.fld input[type=number]{width:44px;text-align:right}
+.fld input[type=date]{width:126px}
+.fld:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.icobtn{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:7px;background:transparent;color:#5c6672;cursor:pointer}
+.icobtn:hover{background:#e9ecf0;color:var(--ink)}
+.icobtn.on{background:var(--accent-soft);color:var(--accent)}
+.icobtn.warn.on{background:var(--warn-soft);color:var(--warn)}
+.icobtn.danger:hover{background:var(--err-soft);color:var(--err)}
+.icobtn:disabled{opacity:.3;cursor:default}
+
+/* ---------- 排班表（Excel 样式） ---------- */
+table.sheet col.c-week{width:96px}
+table.sheet col.c-date{width:152px}
+table.sheet col.c-n1{width:140px}
+table.sheet col.c-n2{width:132px}
+table.sheet col.c-gap{width:12px}
+table.sheet col.c-ctl{width:168px}
+.sheet-card{display:inline-block;background:#fff;border-radius:3px;box-shadow:0 1px 2px rgba(16,24,40,.10),0 12px 30px rgba(16,24,40,.07);overflow:hidden;max-width:100%}
+table.sheet{border-collapse:collapse;table-layout:fixed}
+table.sheet th,table.sheet td{height:29px;padding:0;border:1px solid #000;background:#fff;color:#000;
+  font-size:15px;font-weight:400;text-align:center;vertical-align:middle;overflow:hidden}
+table.sheet thead th{height:33px;font-size:16px;font-weight:700}
+table.sheet th.gap,table.sheet td.gap{border:0;background:transparent;padding:0}
+table.sheet th.ctl,table.sheet td.ctl{border:0;background:transparent;text-align:left;padding-left:5px;overflow:visible}
+.cellbtn{display:block;width:100%;height:29px;padding:0 6px;border:0;background:transparent;font:inherit;font-size:15px;color:inherit;line-height:27px;text-align:center;cursor:pointer;white-space:nowrap;overflow:hidden}
+td.ed:hover{background:#f5faff}
+.cellbtn.hol{color:var(--holiday)}
+.cellbtn.blank{color:transparent}
+.cellbtn.blank:hover{color:#c3ccd6}
+.rowctl{display:flex;gap:1px;opacity:.2;transition:opacity .12s ease}
+tr:hover .rowctl,tr:focus-within .rowctl{opacity:1}
+.wk-cell{color:#000}
+
+/* ---------- 侧栏面板 ---------- */
+.panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
+.panel h2{margin:0 0 10px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
+.panel h2 .cnt{margin-left:auto;font-size:12px;color:var(--muted);font-weight:400}
+.panel h2+ p{margin:0}
+.sub-h{margin:14px 0 8px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.bar{height:7px;border-radius:99px;background:var(--soft);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:99px;background:var(--accent);transition:width .25s ease}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+.chip{font-size:12.5px;padding:3px 9px;border-radius:99px;background:var(--soft);border:1px solid var(--line);color:#48525e}
+.chip.hot{background:var(--accent-soft);border-color:#cfe3fa;color:var(--accent-ink)}
+.btnrow{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.chk{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;color:#3d4652;cursor:pointer;padding:5px 2px}
+.chk input{width:15px;height:15px;accent-color:var(--accent)}
+.issues{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;max-height:360px;overflow:auto}
+.issues li{display:flex;gap:8px;align-items:flex-start;padding:7px 8px;border-radius:8px;font-size:13px;line-height:1.5}
+.issues li:hover{background:var(--soft)}
+.issues .dot{flex:0 0 auto;margin-top:3px;color:var(--accent)}
+.issues li.warn .dot{color:var(--warn)}
+.issues li.err .dot{color:var(--err)}
+.issues .go{margin-left:auto;flex:0 0 auto;border:0;background:transparent;color:var(--accent);font:inherit;font-size:12.5px;cursor:pointer;padding:0 2px;opacity:0}
+.issues li:hover .go{opacity:1}
+.empty-note{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:7px;padding:6px 2px}
+.rules{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+.rules li{position:relative;padding-left:14px;font-size:12.5px;line-height:1.55;color:#4b5563}
+.rules li::before{content:"";position:absolute;left:2px;top:7px;width:5px;height:5px;border-radius:99px;background:var(--line2)}
+
+/* ---------- 名单表 ---------- */
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+table.roster{width:100%;border-collapse:collapse;font-size:14px}
+table.roster th{padding:9px 12px;background:#f8fafb;border-bottom:1px solid var(--line);font-size:12.5px;font-weight:700;color:var(--muted);text-align:left;white-space:nowrap}
+table.roster .c-nm{width:132px}
+table.roster .c-gr{width:126px}
+table.roster .col-now{width:150px}
+table.roster .c-op{width:158px}
+table.roster .idx{width:52px}
+table.roster td{padding:5px 12px;border-bottom:1px solid #f0f2f5;vertical-align:middle}
+table.roster tr:last-child td{border-bottom:0}
+table.roster tbody tr:hover td{background:#fafbfc}
+table.roster tr.dragging{opacity:.45}
+table.roster tr.drop-before td{box-shadow:inset 0 2px 0 0 var(--accent)}
+table.roster tr.drop-after td{box-shadow:inset 0 -2px 0 0 var(--accent)}
+.namein{width:100%;padding:4px 6px;border:1px solid transparent;border-radius:7px;background:transparent;font:inherit;font-size:14px;color:var(--ink);outline:none}
+.namein:hover{background:var(--soft)}
+.namein:focus{background:#fff;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+select.gsel{padding:4px 2px;border:0;border-radius:6px;background:transparent;font:inherit;font-size:13.5px;color:var(--ink);cursor:pointer;outline:none}
+select.gsel:hover{background:var(--soft)}
+.idx{color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
+.grade-now{font-size:13.5px;color:#3d4652;display:inline-flex;align-items:center;gap:5px}
+.grade-now .arrow{color:var(--accent)}
+.grade-now.same{color:var(--muted)}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--soft);color:#4b5563;border:1px solid var(--line);margin-right:4px}
+.tag.warn{background:var(--warn-soft);border-color:#f2ddba;color:var(--warn)}
+.tag.err{background:var(--err-soft);border-color:#f3cbc8;color:var(--err)}
+.tag.ok{background:var(--ok-soft);border-color:#c8e8db;color:var(--ok)}
+.stats{display:flex;flex-direction:column;gap:9px}
+.stat{display:flex;align-items:center;gap:9px;font-size:12.5px}
+.stat .lb{width:42px;color:#4b5563;flex:0 0 auto}
+.stat .bar{flex:1;height:8px}
+.stat .nv{width:22px;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums;flex:0 0 auto}
+
+/* ---------- 导出页 ---------- */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(292px,1fr));gap:14px;max-width:1000px}
+.card-p{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.card-p h3{margin:0;font-size:14.5px;display:flex;align-items:center;gap:8px}
+.card-p p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.6}
+.card-p .fname{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#4b5563;background:var(--soft);border:1px solid var(--line);border-radius:7px;padding:6px 9px;word-break:break-all}
+.card-p .sp{flex:1}
+.card-p>.btn,.card-p .btnrow>.btn{align-self:flex-start}
+
+/* ---------- 浮层 / 弹窗 / 提示 ---------- */
+.pop{position:fixed;z-index:80;width:264px;max-height:62vh;display:flex;flex-direction:column;gap:6px;padding:8px;background:#fff;border:1px solid var(--line2);border-radius:12px;box-shadow:0 20px 44px rgba(16,24,40,.20)}
+.pop[hidden]{display:none}
+.pop .search{width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13.5px;outline:none}
+.pop .search:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.pop .list{overflow:auto;display:flex;flex-direction:column;gap:1px}
+.pop .item{display:flex;align-items:center;gap:8px;width:100%;padding:7px 9px;border:0;border-radius:8px;background:transparent;font:inherit;font-size:14px;color:var(--ink);text-align:left;cursor:pointer}
+.pop .item:hover{background:var(--soft)}
+.pop .item.sel{background:var(--accent-soft);color:var(--accent-ink);font-weight:700}
+.pop .item .sub{margin-left:auto;font-size:12px;font-weight:400;color:var(--muted)}
+.pop .item .sub.warn{color:var(--warn)}
+.pop .sep{height:1px;background:var(--line);margin:3px 2px}
+.pop .pr{display:flex;align-items:center;gap:8px;padding:2px 4px;font-size:13px;color:var(--muted)}
+.pop input[type=date]{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13.5px}
+.pop label.chk{border-radius:8px;padding:6px}
+.pop .hdr{display:flex;align-items:center;gap:8px;padding:2px 4px 4px;font-size:12.5px;color:var(--muted)}
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(10px);z-index:95;padding:10px 16px;border-radius:10px;background:#14181f;color:#fff;font-size:13.5px;box-shadow:0 12px 30px rgba(0,0,0,.26);opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;max-width:70vw}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.warn{background:#7d4a06}#toast.err{background:#8d2320}
+.back{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px;background:rgba(16,24,40,.44)}
+.modal{width:100%;max-width:520px;max-height:82vh;display:flex;flex-direction:column;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 30px 60px rgba(16,24,40,.32)}
+.modal h3{margin:0;padding:15px 18px;border-bottom:1px solid var(--line);font-size:15px}
+.modal .body{padding:16px 18px;overflow:auto;font-size:13.5px;line-height:1.65}
+.modal .body .plist{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.modal .foot{padding:12px 18px;border-top:1px solid var(--line);background:#fbfcfd;display:flex;gap:8px;justify-content:flex-end}
+.flash{animation:flash 1.1s ease}
+@keyframes flash{0%,100%{background:#fff}18%,60%{background:#fff6d8}}
+.mobilebar{display:none}
+
+/* ---------- 纯净视图 / 打印 ---------- */
+body.clean{background:#fff}
+body.clean .appbar,body.clean .toolbar,body.clean .col-side{display:none}
+body.clean main{padding:22px}
+body.clean .sheet-card{box-shadow:none}
+body.clean .gap,body.clean .ctl{display:none}
+body.clean table.sheet th,body.clean table.sheet td{display:table-cell}
+@media print{
+  body{background:#fff;display:block;overflow:visible;height:auto}
+  .appbar,.toolbar,.col-side,.gap,.ctl,#toast,.pop,#cleanHint{display:none !important}
+  main{padding:0;overflow:visible}
+  .sheet-card{box-shadow:none;border-radius:0}
+  table.sheet{width:auto}
+  @page{size:auto;margin:14mm}
+}
+#cleanHint{position:fixed;right:16px;bottom:16px;z-index:60;font-size:12.5px;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:99px;padding:7px 13px;box-shadow:0 6px 18px rgba(16,24,40,.12)}
+.wk-car{display:none;color:#aeb7c1;font-size:12px;margin-left:3px}
+.now-inline{display:none;margin-left:7px;font-size:12px;color:var(--accent)}
+.mobilebar{gap:10px;align-items:center;position:fixed;left:0;right:0;bottom:0;z-index:40;padding:9px 12px calc(9px + env(safe-area-inset-bottom));background:rgba(255,255,255,.96);border-top:1px solid var(--line);backdrop-filter:saturate(180%) blur(8px)}
+.mobilebar .mb-info{font-size:12.5px;color:var(--muted);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mobilebar .btn{flex:0 0 auto}
+body.touch .rowctl{opacity:1}
+body.touch .icobtn{width:30px;height:30px}
+body.touch .issues .go{opacity:1}
+body.touch .btn,body.touch .fld{height:38px}
+body.touch .cellbtn{height:34px;line-height:32px}
+body.touch table.sheet th,body.touch table.sheet td{height:34px}
+
+/* ---------- 手机 / 窄屏 ---------- */
+@media (max-width:780px){
+  main{padding:12px 10px calc(88px + env(safe-area-inset-bottom))}
+  body[data-view="schedule"] .mobilebar{display:flex}
+  #toast{bottom:86px}
+  .appbar{height:50px;padding:0 10px;gap:8px;flex-wrap:nowrap}
+  .brand{gap:8px;min-width:0}
+  .brand .mark{width:26px;height:26px;border-radius:7px}
+  .brand h1{font-size:14px}
+  .brand p{display:none}
+  .tabs{margin-left:auto;padding:2px}
+  .tab{height:26px;padding:0 9px;font-size:13px;gap:4px}
+  .tab .ico{width:14px;height:14px}
+  .save{min-width:0;gap:0}
+  .save span:last-child{display:none}
+  .toolbar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-bottom:12px}
+  .toolbar::-webkit-scrollbar{display:none}
+  .toolbar .grow{display:none}
+  .toolbar .fld,.toolbar .btn{flex:0 0 auto}
+  table.sheet th,table.sheet td{height:32px}
+  table.sheet thead th{height:34px;font-size:15px}
+  .cellbtn{height:32px;line-height:30px;font-size:14.5px}
+  .stage{flex-direction:column;gap:14px}
+  .col-sheet{width:100%;max-width:100%;overflow-x:auto}
+  .col-side{width:100%;max-width:100%;min-width:0}
+  table.sheet col.c-week{width:52px}
+  table.sheet col.c-date{width:112px}
+  table.sheet col.c-n1,table.sheet col.c-n2{width:102px}
+  .gap,.ctl{display:none}
+  .wk-car{display:inline}
+  .col-now,.col-tags{display:none}
+  .now-inline{display:inline}
+  .cards{grid-template-columns:1fr}
+  .pop{width:min(300px,calc(100vw - 24px))}
+  /* 名单页在手机上排布 */
+  table.roster{table-layout:fixed;font-size:14px}
+  table.roster th{padding:8px 4px;font-size:12px}
+  table.roster td{padding:5px 4px}
+  table.roster .idx{width:36px;padding-left:10px}
+  table.roster .c-nm{width:auto}
+  table.roster .c-gr{width:88px}
+  table.roster .c-op{width:124px}
+  .rowctl{gap:0}
+  .rowctl .icobtn,.icobtn{width:27px;height:27px}
+  .icobtn[data-drag]{display:none}
+  /* iOS 上输入框字号小于 16px 会自动放大页面 */
+  .namein,.gsel,.pop .search,.pop input[type=date],.modal input,.modal select{font-size:16px}
+  .namein{padding:4px 4px}
+}
+@media (hover:none){
+  .rowctl{opacity:1}
+  .issues .go{opacity:1}
+}
+</style>
+</head>
+<body>
+<header class="appbar">
+  <div class="brand">
+    <span class="mark" data-icon="table"></span>
+    <div>
+      <h1>组会排班</h1>
+      <p id="brandSub">—</p>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-view="schedule" data-icon="calendar">排班表</button>
+    <button class="tab" data-view="roster" data-icon="users">名单</button>
+    <button class="tab" data-view="export" data-icon="download">导出</button>
+  </nav>
+  <div class="save" id="saveState"><span class="dot"></span><span>已保存</span></div>
+</header>
+
+<main>
+  <!-- ================= 排班表 ================= -->
+  <section class="view active" id="view-schedule">
+    <div class="toolbar">
+      <label class="fld"><span>起始日期</span><input type="date" id="tblStart"/></label>
+      <label class="fld"><span>间隔</span><input type="number" id="tblStep" min="1" max="60" step="1"/><span>天</span></label>
+      <label class="fld"><span>起始周次</span><input type="number" id="tblWeek" min="1" max="99" step="1"/></label>
+      <div class="grow"></div>
+      <button class="btn" id="btnAddRow" data-icon="plus"><span>加一周</span></button>
+      <button class="btn" id="btnClean" data-icon="maximize"><span>纯净视图</span></button>
+      <button class="btn" id="btnPrint" data-icon="printer"><span>打印</span></button>
+    </div>
+    <div class="stage">
+      <div class="col-sheet">
+        <div class="sheet-card">
+          <table class="sheet" id="sheetTable">
+            <colgroup><col class="c-week"/><col class="c-date"/><col class="c-n1"/><col class="c-n2"/><col class="c-gap gap"/><col class="c-ctl"/></colgroup>
+            <thead><tr><th>周次</th><th>日期</th><th>论文报告1</th><th>论文报告2</th><th class="gap"></th><th class="ctl"></th></tr></thead>
+            <tbody id="sheetBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <aside class="col-side">
+        <section class="panel" id="panelProgress"></section>
+        <section class="panel" id="panelIssues"></section>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ================= 名单 ================= -->
+  <section class="view" id="view-roster">
+    <div class="toolbar">
+      <button class="btn primary" id="btnAddPerson" data-icon="plus"><span>添加成员</span></button>
+      <button class="btn" id="btnImportRoster" data-icon="upload"><span>从 Excel 导入名单</span></button>
+      <div class="grow"></div>
+      <label class="fld"><span>年级基准日</span><input type="date" id="rosterBase"/></label>
+      <button class="btn" id="btnSyncGrades" data-icon="refresh"><span>按日期更新年级</span></button>
+    </div>
+    <div class="stage">
+      <div class="col-sheet" style="flex:1 1 auto;min-width:0;max-width:820px">
+        <div class="card">
+          <table class="roster" id="rosterTable">
+            <thead><tr>
+              <th class="idx">序号</th><th class="c-nm">姓名</th><th class="c-gr">年级</th>
+              <th class="col-now">现在年级</th><th class="col-tags">状态</th><th class="c-op">操作</th>
+            </tr></thead>
+            <tbody id="rosterBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <aside class="col-side">
+        <section class="panel">
+          <h2>年级分布<span class="cnt" id="rosterTotal"></span></h2>
+          <div class="stats" id="gradeStats"></div>
+        </section>
+        <section class="panel">
+          <h2>组内规则</h2>
+          <ul class="rules" id="rulesList"></ul>
+        </section>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ================= 导出 ================= -->
+  <section class="view" id="view-export">
+    <div class="cards">
+      <article class="card-p">
+        <h3><span data-icon="table"></span>排班表 Excel</h3>
+        <p>排班表 + 名单两个工作表，边框、字号、颜色与表格一致。</p>
+        <div class="fname" id="xlsxName">—</div>
+        <div class="sp"></div>
+        <button class="btn primary" id="btnXlsx" data-icon="download"><span>导出 .xlsx</span></button>
+      </article>
+      <article class="card-p">
+        <h3><span data-icon="printer"></span>打印 / 存 PDF</h3>
+        <p>只输出表格部分，可直接截图或另存为 PDF 发群里。</p>
+        <div class="sp"></div>
+        <button class="btn" id="btnPrint2" data-icon="printer"><span>打印预览</span></button>
+      </article>
+      <article class="card-p">
+        <h3><span data-icon="save"></span>数据备份</h3>
+        <p>把名单、排班、设置存成一个文件，换电脑或重装浏览器后可恢复。</p>
+        <div class="sp"></div>
+        <div class="btnrow" style="margin:0">
+          <button class="btn" id="btnBackup" data-icon="download"><span>导出备份</span></button>
+          <button class="btn" id="btnRestore" data-icon="upload"><span>导入备份</span></button>
+        </div>
+      </article>
+      <article class="card-p">
+        <h3><span data-icon="upload"></span>从 Excel 取名单</h3>
+        <p>读取已有 xlsx 中的“姓名 + 年级”，确认后替换当前名单。</p>
+        <div class="sp"></div>
+        <button class="btn" id="btnImportRoster2" data-icon="upload"><span>选择 .xlsx</span></button>
+      </article>
+      <article class="card-p">
+        <h3><span data-icon="link"></span>手机 ⇄ 电脑 搬数据</h3>
+        <p>生成一条带数据的链接，发到另一台设备打开就能导入，适合偶尔同步一次。</p>
+        <div class="sp"></div>
+        <button class="btn" id="btnShare" data-icon="link"><span>生成分享链接</span></button>
+      </article>
+    </div>
+    <input type="file" id="fileXlsx" accept=".xlsx" hidden/>
+    <input type="file" id="fileJson" accept=".json,application/json" hidden/>
+  </section>
+</main>
+
+<div class="pop" id="pop" hidden></div>
+<div id="toast"></div>
+<div id="cleanHint" hidden></div>
+<div class="mobilebar" id="mobileBar">
+  <span class="mb-info" id="mbInfo">—</span>
+  <button class="btn primary" data-act="continue" data-icon="wand"><span>继续安排</span></button>
+</div>
+
+<script>
+'use strict';
+/* =========================================================
+   组会排班 · 单文件本地应用
+   数据保存在浏览器 localStorage，可导出 xlsx / json 备份
+   ========================================================= */
+
+/* ---------------- 基础工具 ---------------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad2 = n => String(n).padStart(2, '0');
+const isoOf = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const parseISO = s => { const [y, m, d] = String(s).split('-').map(Number); return new Date(y, (m || 1) - 1, d || 1); };
+const addDays = (s, n) => { const d = parseISO(s); d.setDate(d.getDate() + Number(n || 0)); return isoOf(d); };
+const todayISO = () => isoOf(new Date());
+const isISO = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ''));
+const uid = () => 'p' + Math.random().toString(36).slice(2, 9);
+const daysApart = (a, b) => Math.round((parseISO(b) - parseISO(a)) / 86400000);
+const weeksApart = (a, b) => Math.round(Math.abs(daysApart(a, b)) / 7);
+const deep = o => JSON.parse(JSON.stringify(o));
+
+/* ---------------- 图标（lucide） ---------------- */
+const ICONS = {
+  plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  up: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+  down: '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
+  chevUp: '<path d="m18 15-6-6-6 6"/>',
+  chevDown: '<path d="m6 9 6 6 6-6"/>',
+  trash: '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/>',
+  grip: '<circle cx="9" cy="6" r="1.6" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="9" cy="18" r="1.6" fill="currentColor" stroke="none"/><circle cx="15" cy="6" r="1.6" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="15" cy="18" r="1.6" fill="currentColor" stroke="none"/>',
+  calendar: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+  calendarDays: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/>',
+  users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  table: '<path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/>',
+  link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  unlink: '<path d="m18.84 12.25 1.72-1.71h-.02a5.004 5.004 0 0 0-.12-7.07 5.006 5.006 0 0 0-6.95 0l-1.72 1.71"/><path d="m5.17 11.75-1.71 1.71a5.004 5.004 0 0 0 .12 7.07 5.006 5.006 0 0 0 6.95 0l1.71-1.71"/><path d="m8 2 0 3"/><path d="m2 8 3 0"/><path d="m16 19 0 3"/><path d="m19 16 3 0"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+  refresh: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+  printer: '<path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+  upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>',
+  save: '<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/>',
+  wand: '<path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/>',
+  alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+  maximize: '<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>',
+  briefcase: '<path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/>',
+  cap: '<path d="M21.42 10.92a1 1 0 0 0-.02-1.84L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.83l8.57 3.91a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>',
+};
+function svgIcon(name, size) {
+  const p = ICONS[name] || '';
+  return `<svg class="ico" viewBox="0 0 24 24" width="${size || 16}" height="${size || 16}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+}
+function icobtn(iconName, title, attrs, cls, size) {
+  return `<button class="icobtn ${cls || ''}" title="${esc(title)}" ${attrs || ''}>${svgIcon(iconName, size || 15)}</button>`;
+}
+function hydrateIcons(root) {
+  $$('[data-icon]', root || document).forEach(el => {
+    const n = el.getAttribute('data-icon');
+    if (el.querySelector(':scope > svg.ico')) return;
+    el.insertAdjacentHTML('afterbegin', svgIcon(n, Number(el.getAttribute('data-icon-size')) || 16));
+  });
+}
+
+/* ---------------- 提示 / 弹窗 ---------------- */
+let toastTimer = null;
+function toast(msg, kind) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = 'show ' + (kind === 'warn' ? 'warn' : kind === 'err' ? 'err' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.className = ''; }, 2600);
+}
+function modal({ title, bodyHtml, okText, cancelText, onOk }) {
+  return new Promise(resolve => {
+    const back = document.createElement('div');
+    back.className = 'back';
+    back.innerHTML = `<div class="modal">
+        <h3>${esc(title)}</h3>
+        <div class="body">${bodyHtml}</div>
+        <div class="foot">
+          ${cancelText === null ? '' : `<button class="btn" data-x="cancel">${esc(cancelText || '取消')}</button>`}
+          <button class="btn primary" data-x="ok">${esc(okText || '确定')}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(back);
+    const done = v => {
+      let extra = null;
+      if (v && onOk) { try { extra = onOk($('.modal', back)); } catch (e) { extra = null; } }
+      back.remove();
+      document.removeEventListener('keydown', onKey);
+      resolve(v ? (extra === null ? true : extra) : false);
+    };
+    const onKey = e => { if (e.key === 'Escape') done(false); };
+    document.addEventListener('keydown', onKey);
+    back.addEventListener('click', e => {
+      if (e.target === back) return done(false);
+      const b = e.target.closest('[data-x]');
+      if (b) done(b.dataset.x === 'ok');
+    });
+  });
+}
+
+/* ---------------- 浮层 ---------------- */
+const popEl = () => $('#pop');
+let popOpen = false;
+function closePop() {
+  const p = popEl();
+  p.hidden = true;
+  p.innerHTML = '';
+  popOpen = false;
+}
+function openPop(anchor, html, width) {
+  /* 每次都换一个全新的浮层元素，避免旧的点击监听器残留 */
+  const old = popEl();
+  const p = old.cloneNode(false);
+  old.replaceWith(p);
+  p.hidden = false;
+  p.innerHTML = html;
+  if (width) p.style.width = width + 'px';
+  p.style.left = '0px'; p.style.top = '0px';
+  const a = anchor.getBoundingClientRect();
+  const w = p.offsetWidth, h = p.offsetHeight;
+  let left = Math.min(a.left, window.innerWidth - w - 10);
+  let top = a.bottom + 5;
+  if (top + h > window.innerHeight - 10) top = Math.max(10, a.top - h - 5);
+  p.style.left = Math.max(10, left) + 'px';
+  p.style.top = Math.max(10, top) + 'px';
+  popOpen = true;
+  return p;
+}
+document.addEventListener('mousedown', e => {
+  if (!popOpen) return;
+  const p = popEl();
+  if (p.contains(e.target)) return;
+  if (e.target.closest('[data-act="name"],[data-act="date"]')) return;
+  closePop();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && popOpen) closePop(); });
+
+/* ---------------- 年级 / 节假日 ---------------- */
+const GRADES = ['博三', '博二', '博一', '研三', '研二', '研一', '大四', '大三', '大二', '大一'];
+const GRADE_NEXT = { '大一': '大二', '大二': '大三', '大三': '大四', '大四': '毕业', '研一': '研二', '研二': '研三', '研三': '毕业', '博一': '博二', '博二': '博三', '博三': '毕业' };
+const GRADE_RANK = { '大一': 1, '大二': 2, '大三': 3, '大四': 4, '研一': 5, '研二': 6, '研三': 7, '博一': 8, '博二': 9, '博三': 10, '毕业': 11 };
+function promoteOnce(g) { return GRADE_NEXT[g] || g; }
+/* 每年 9 月 1 日升一级 */
+function gradeNow(person, refISO) {
+  const ref = refISO || todayISO();
+  const from = isISO(person.gFrom) ? person.gFrom : '2000-01-01';
+  let g = person.g || '';
+  let steps = 0;
+  for (let y = Number(from.slice(0, 4)); y <= Number(ref.slice(0, 4)) + 1; y++) {
+    const prom = y + '-09-01';
+    if (from < prom && ref >= prom && steps < 12) { g = promoteOnce(g); steps++; }
+  }
+  return { grade: g, steps, graduated: g === '毕业' };
+}
+const HOLIDAYS = [
+  ['2026-01-01', '2026-01-03', '元旦'],
+  ['2026-02-15', '2026-02-21', '春节'],
+  ['2026-04-04', '2026-04-06', '清明'],
+  ['2026-05-01', '2026-05-05', '劳动节'],
+  ['2026-06-19', '2026-06-21', '端午'],
+  ['2026-09-25', '2026-09-27', '中秋'],
+  ['2026-10-01', '2026-10-08', '国庆'],
+  ['2027-01-01', '2027-01-03', '元旦'],
+  ['2027-02-05', '2027-02-11', '春节'],
+  ['2027-04-03', '2027-04-05', '清明'],
+  ['2027-05-01', '2027-05-05', '劳动节'],
+  ['2027-06-09', '2027-06-11', '端午'],
+  ['2027-09-15', '2027-09-17', '中秋'],
+  ['2027-10-01', '2027-10-07', '国庆'],
+];
+function holidayName(dateISO) {
+  if (!isISO(dateISO)) return '';
+  for (const [a, b, name] of HOLIDAYS) {
+    if (dateISO >= a && dateISO <= b) return name + (a >= '2027-01-01' ? '（预计）' : '');
+  }
+  return '';
+}
+const AVOID_RULES = [
+  '上学期期末（1 月）避开大三、研一（考试）',
+  '下学期期末（6 月）避开大三、研一（考试）、研三（毕业）',
+  '6 月以后避开在外实习的研二',
+  '3 月底前避开在赶毕业论文的研三',
+  '5 月上旬避开准备答辩的研三',
+];
+
+/* ---------------- 初始数据（来自组会pre安排-20260511.xlsx） ---------------- */
+const ROSTER_SEED = [
+  ['陈一南', '博三'], ['周宇康', '研三'], ['陈铭轩', '研三'], ['林鹏飞', '研三'], ['王伟斌', '研三'],
+  ['曾骜', '研二'], ['张镌铧', '研二'], ['吴一玄', '研二'], ['邹新榆', '研二'], ['杨宇轩', '研二'],
+  ['吴湘婷', '研二'], ['杨鼎文', '研一'], ['张嘉慧', '研一'], ['梁冠轩', '研一'], ['黄泰城', '研一'],
+  ['李智烨', '大四'], ['冯梓斌', '大四'], ['夏伟健', '大四'], ['胡昱杰', '大四'], ['贺斌', '大四'],
+  ['陈昭延', '大四'], ['吕铭翔', '大三'], ['曹西贝', '大二'], ['焦延熙', '研一'], ['桂宸健', '大三'],
+];
+function seedState() {
+  const rows = [
+    ['2026-09-11', '杨鼎文', '/'],
+    ['2026-09-18', '张嘉慧', '梁冠轩'],
+    ['2026-09-29', '王伟斌', '冯梓斌'],
+    ['2026-10-02', '/', '/'],
+    ['2026-10-09', '杨宇轩', '张镌铧'],
+    ['2026-10-16', '吴一玄', '蔡佳宏'],
+    ['2026-10-23', '黄泰城', '曾骜'],
+    ['2026-10-30', '邹新榆', '吴湘婷'],
+    ['2026-11-06', '周宇康', '夏伟健'],
+    ['2026-11-13', '陈铭轩', '李智烨'],
+    ['2026-11-20', '林鹏飞', '张宇轩'],
+    ['2026-11-27', '贺斌', '胡昱杰'],
+    ['2026-12-04', '陈昭延', '吕铭翔'],
+    ['2026-12-11', '焦延熙', '曹西贝'],
+    ['2026-12-18', '张嘉慧', '梁冠轩'],
+    ['2026-12-25', '', ''],
+    ['2027-01-01', '/', '/'],
+  ];
+  const steps = [7, 7, 11, 3, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7];
+  return {
+    v: 1,
+    ui: { view: 'schedule' },
+    settings: { minGap: 3, skipHoliday: true },
+    roster: ROSTER_SEED.map(([n, g]) => ({ id: uid(), n, g, gFrom: '2026-09-01', intern: false })),
+    schedule: {
+      startWeek: 1,
+      step: 7,
+      rows: rows.map((r, i) => ({
+        date: r[0], r1: r[1], r2: r[2],
+        link: i > 0, step: steps[i], holiday: r[1] === '/' && r[2] === '/',
+        round: 1,
+      })),
+    },
+  };
+}
+
+/* ---------------- 状态 ---------------- */
+const KEY = 'zuhui-paiban-v1';
+function normalize(s) {
+  s.v = 1;
+  s.ui = s.ui || { view: 'schedule' };
+  s.settings = Object.assign({ minGap: 3, skipHoliday: true }, s.settings || {});
+  s.roster = Array.isArray(s.roster) ? s.roster : [];
+  s.roster.forEach(p => { p.id = p.id || uid(); p.g = p.g || '研一'; p.gFrom = p.gFrom || todayISO(); });
+  s.schedule = s.schedule || { startWeek: 1, step: 7, rows: [] };
+  s.schedule.step = Number(s.schedule.step) || 7;
+  s.schedule.startWeek = Number(s.schedule.startWeek) || 1;
+  s.schedule.rows = (s.schedule.rows || []).map((r, i) => ({
+    date: isISO(r.date) ? r.date : '',
+    r1: r.r1 == null ? '' : String(r.r1),
+    r2: r.r2 == null ? '' : String(r.r2),
+    link: i === 0 ? false : !!r.link,
+    step: Number(r.step) || 0,
+    holiday: !!r.holiday,
+    round: Number(r.round) || 1,
+  }));
+  return s;
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) { const s = JSON.parse(raw); if (s && s.v === 1) return normalize(s); }
+  } catch (e) { }
+  return normalize(seedState());
+}
+let state = loadState();
+let saveTimer = null;
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { toast('浏览器本地存储写入失败', 'err'); }
+  const el = $('#saveState');
+  el.classList.add('flash');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => el.classList.remove('flash'), 400);
+}
+
+/* ---------------- 公共取数 ---------------- */
+const rosterNames = () => state.roster.map(p => p.n);
+const findPerson = n => state.roster.find(p => p.n === n) || null;
+const weekNo = i => (Number(state.schedule.startWeek) || 1) + i;
+const schedRoundOfRow = r => Number(r.round) || 1;
+function currentRound() {
+  const rows = state.schedule.rows;
+  return rows.length ? schedRoundOfRow(rows[rows.length - 1]) : 1;
+}
+function scheduledInRound(round) {
+  const set = new Set();
+  state.schedule.rows.forEach(r => {
+    if (schedRoundOfRow(r) !== round) return;
+    [r.r1, r.r2].forEach(n => { if (n && n !== '/') set.add(n); });
+  });
+  return set;
+}
+function lastReportMap() {
+  const m = new Map();
+  state.schedule.rows.forEach((r, i) => {
+    if (!isISO(r.date)) return;
+    [r.r1, r.r2].forEach(n => { if (n && n !== '/') m.set(n, r.date); });
+  });
+  return m;
+}
+
+/* ---------------- 排班表渲染 ---------------- */
+function cellHtml(name, row, slot) {
+  const empty = !name;
+  return `<button class="cellbtn ${empty ? 'blank' : ''}" data-act="name" data-row="${row}" data-slot="${slot}"
+    title="${empty ? '点击选择汇报人' : esc(name)}">${empty ? '＋' : esc(name)}</button>`;
+}
+function renderSheet() {
+  const rows = state.schedule.rows;
+  const body = $('#sheetBody');
+  body.innerHTML = rows.map((r, i) => {
+    const hol = !!r.holiday;
+    const dateTxt = isISO(r.date) ? r.date : '选择日期';
+    const hn = hol ? holidayName(r.date) : '';
+    return `<tr data-row="${i}">
+      <td class="wk-cell ed"><button class="cellbtn" data-act="wk" data-row="${i}" title="第 ${weekNo(i)} 周 · 行操作"><span>${weekNo(i)}</span><span class="wk-car">⌄</span></button></td>
+      <td class="ed"><button class="cellbtn ${hol ? 'hol' : ''} ${isISO(r.date) ? '' : 'blank'}" data-act="date" data-row="${i}"
+        title="${esc((r.date || '未设日期') + (hn ? ' · ' + hn : ''))}">${esc(dateTxt)}</button></td>
+      <td class="ed">${cellHtml(r.r1, i, 1)}</td>
+      <td class="ed">${cellHtml(r.r2, i, 2)}</td>
+      <td class="gap"></td>
+      <td class="ctl"><div class="rowctl">
+        ${icobtn(r.link ? 'link' : 'unlink', r.link ? '日期跟随上一条（+' + stepOfRow(i) + ' 天）' : '日期已固定，不跟随', `data-act="link" data-row="${i}"`, r.link ? 'on' : '')}
+        ${icobtn('sun', hol ? '已标记节假日（' + (hn || '自定义') + '）' : '标记为节假日', `data-act="hol" data-row="${i}"`, hol ? 'warn on' : '')}
+        ${icobtn('chevUp', '上移', `data-act="up" data-row="${i}"`, '', 15)}
+        ${icobtn('chevDown', '下移', `data-act="down" data-row="${i}"`, '', 15)}
+        ${icobtn('trash', '删除这一周', `data-act="del" data-row="${i}"`, 'danger', 15)}
+      </div></td></tr>`;
+  }).join('');
+  $('#tblStart').value = rows.length && isISO(rows[0].date) ? rows[0].date : '';
+  $('#tblStep').value = state.schedule.step;
+  $('#tblWeek').value = state.schedule.startWeek;
+  renderSide();
+  const n = rows.length;
+  $('#brandSub').textContent = `名单 ${state.roster.length} 人 · 排班 ${n} 周 · 本轮第 ${currentRound()} 轮`;
+}
+function stepOfRow(i) {
+  const r = state.schedule.rows[i];
+  if (r && Number(r.step)) return Number(r.step);
+  return Number(state.schedule.step) || 7;
+}
+/* 按 link + step 顺延日期 */
+function recomputeDates() {
+  const rows = state.schedule.rows;
+  rows.forEach((r, i) => {
+    if (i === 0) { r.link = false; return; }
+    if (r.link) {
+      const prev = rows[i - 1];
+      if (isISO(prev.date)) r.date = addDays(prev.date, Number(r.step) || Number(state.schedule.step) || 7);
+    }
+  });
+}
+
+/* ---------------- 侧栏 ---------------- */
+function renderSide() {
+  const rows = state.schedule.rows;
+  const round = currentRound();
+  const done = scheduledInRound(round);
+  const pending = rosterNames().filter(n => !done.has(n));
+  const total = state.roster.length;
+  const doneCount = total ? total - pending.length : 0;
+  const pct = total ? Math.round((doneCount / total) * 100) : 0;
+  $('#panelProgress').innerHTML = `
+    <h2>本轮进度<span class="cnt">${doneCount} / ${total}</span></h2>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    ${pending.length
+      ? `<div class="chips">${pending.map(n => `<span class="chip hot">${esc(n)}</span>`).join('')}</div>`
+      : `<div class="empty-note">${svgIcon('check', 15)}本轮名单所有人都已排完</div>`}
+    <div class="sub-h">继续安排</div>
+    <label class="chk"><input type="checkbox" id="optHoliday" ${state.settings.skipHoliday ? 'checked' : ''}/>自动跳过法定节假日</label>
+    <label class="chk"><input type="checkbox" id="optSkipIntern" ${state.settings.skipIntern ? 'checked' : ''}/>6 月起避开实习的研二</label>
+    <div class="btnrow">
+      <button class="btn primary" data-act="continue">${svgIcon('wand', 15)}<span>继续安排</span></button>
+      <button class="btn" data-act="rebuild">${svgIcon('refresh', 15)}<span>重排整张表</span></button>
+    </div>`;
+
+  const issues = computeIssues();
+  const errs = issues.filter(i => i.level === 'err').length;
+  const mb = $('#mbInfo');
+  if (mb) mb.textContent = `本轮 ${doneCount} / ${total} · 共 ${state.schedule.rows.length} 周`;
+  const warns = issues.filter(i => i.level === 'warn').length;
+  const infos = issues.filter(i => i.level === 'info').length;
+  const parts = [errs ? `${errs} 处错误` : '', warns ? `${warns} 处留意` : '', infos ? `${infos} 条提示` : ''].filter(Boolean);
+  $('#panelIssues').innerHTML = `
+    <h2>检查<span class="cnt">${issues.length ? parts.join(' · ') : '无问题'}</span></h2>
+    ${issues.length ? `<ul class="issues">${issues.map((it, k) => `
+      <li class="${it.level}"><span class="dot">${svgIcon(it.level === 'info' ? 'info' : 'alert', 14)}</span>
+        <span>${esc(it.text)}</span>
+        ${it.row != null ? `<button class="go" data-goto="${it.row}">定位</button>` : ''}
+      </li>`).join('')}</ul>`
+      : `<div class="empty-note">${svgIcon('check', 15)}排班表与名单一致</div>`}`;
+}
+function computeIssues() {
+  const out = [];
+  const rows = state.schedule.rows;
+  const names = new Set(rosterNames());
+  const seen = [];
+  rows.forEach((r, i) => {
+    [1, 2].forEach(slot => {
+      const n = r[slot === 1 ? 'r1' : 'r2'];
+      if (n && n !== '/') seen.push({ n, row: i, date: r.date });
+    });
+  });
+  // 不在名单里的人
+  const unknown = [];
+  seen.forEach(s => { if (!names.has(s.n) && !unknown.includes(s.n)) unknown.push(s.n); });
+  unknown.forEach(n => {
+    const hit = seen.find(s => s.n === n);
+    out.push({ level: 'err', text: `“${n}”不在名单中（第 ${weekNo(hit.row)} 周）`, row: hit.row });
+  });
+  // 空位
+  const blanks = rows.map((r, i) => ({ r, i })).filter(({ r }) => !r.holiday && (r.r1 === '' || r.r2 === ''));
+  if (blanks.length) out.push({ level: 'info', text: `第 ${blanks.map(b => weekNo(b.i)).join('、')} 周还有空位`, row: blanks[0].i });
+  // 本轮未排
+  const round = currentRound();
+  const done = scheduledInRound(round);
+  const missing = rosterNames().filter(n => !done.has(n));
+  if (missing.length) out.push({ level: 'info', text: `本轮还有 ${missing.length} 人未排：${missing.join('、')}`, row: null });
+  // 间隔过短
+  const byName = new Map();
+  seen.forEach(s => { if (!byName.has(s.n)) byName.set(s.n, []); byName.get(s.n).push(s); });
+  for (const [n, list] of byName) {
+    for (let i = 1; i < list.length; i++) {
+      if (!isISO(list[i].date) || !isISO(list[i - 1].date)) continue;
+      const gap = weeksApart(list[i - 1].date, list[i].date);
+      if (gap < (Number(state.settings.minGap) || 3)) {
+        out.push({ level: 'warn', text: `${n} 第 ${weekNo(list[i - 1].row)} 周与第 ${weekNo(list[i].row)} 周只隔 ${gap} 周`, row: list[i].row });
+      }
+    }
+  }
+  // 节假日
+  rows.forEach((r, i) => {
+    const hn = holidayName(r.date);
+    if (hn && !r.holiday) out.push({ level: 'warn', text: `第 ${weekNo(i)} 周（${r.date}）是${hn}`, row: i });
+  });
+  // 期末避让
+  rows.forEach((r, i) => {
+    if (!isISO(r.date) || r.holiday) return;
+    const m = Number(r.date.slice(5, 7)), d = Number(r.date.slice(8, 10));
+    const avoid = new Set();
+    if (m === 1) ['大三', '研一'].forEach(g => avoid.add(g));
+    if (m === 6) ['大三', '研一', '研三'].forEach(g => avoid.add(g));
+    if (m === 3) avoid.add('研三');
+    if (m === 5 && d <= 20) avoid.add('研三');
+    if (!avoid.size) return;
+    [r.r1, r.r2].forEach(n => {
+      if (!n || n === '/') return;
+      const p = findPerson(n);
+      if (p && avoid.has(gradeNow(p).grade)) out.push({ level: 'warn', text: `第 ${weekNo(i)} 周避让期安排了 ${n}（${gradeNow(p).grade}）`, row: i });
+    });
+  });
+  return out;
+}
+
+/* =========================================================
+   排班表：单元格编辑 / 行操作 / 自动安排
+   ========================================================= */
+function setSlot(row, slot, value) {
+  const r = state.schedule.rows[row];
+  if (!r) return;
+  r[slot === 1 ? 'r1' : 'r2'] = value;
+  if (value && value !== '/') {
+    const p = findPerson(value);
+    if (!p) toast(`“${value}”不在名单里，记得去名单里加一下`, 'warn');
+  }
+  save(); renderSheet();
+}
+function toggleLink(row) {
+  const r = state.schedule.rows[row];
+  if (!r) return;
+  r.link = !r.link;
+  if (r.link) recomputeDates(); else if (isISO(r.date)) r.step = daysApart(state.schedule.rows[row - 1] ? state.schedule.rows[row - 1].date : r.date, r.date) || state.schedule.step;
+  save(); renderSheet();
+}
+function toggleHol(row) {
+  const r = state.schedule.rows[row];
+  if (!r) return;
+  r.holiday = !r.holiday;
+  save(); renderSheet();
+  const hn = holidayName(r.date);
+  if (r.holiday && !hn) toast('已标记为节假日，日期会显示为蓝色');
+  else if (r.holiday && hn) toast(`已标记：${r.date} ${hn}`);
+}
+function moveRow(row, dir) {
+  const rows = state.schedule.rows;
+  if (rows[row].holiday) return toast('这一周是节假日，没有可移动的汇报', 'warn');
+  let j = row + dir;
+  while (j >= 0 && j < rows.length && rows[j].holiday) j += dir;
+  if (j < 0 || j >= rows.length) return;
+  ['r1', 'r2', 'round'].forEach(k => { const t = rows[row][k]; rows[row][k] = rows[j][k]; rows[j][k] = t; });
+  save(); renderSheet();
+}
+function insertRow(at) {
+  const rows = state.schedule.rows;
+  const anchor = rows[at] || rows[rows.length - 1] || null;
+  const step = Number(state.schedule.step) || 7;
+  const nr = {
+    date: anchor && isISO(anchor.date) ? addDays(anchor.date, -step) : '',
+    link: true, step: step, holiday: false, round: anchor ? schedRoundOfRow(anchor) : 1, r1: '', r2: '',
+  };
+  rows.splice(Math.max(0, at), 0, nr);
+  recomputeDates();
+  save(); renderSheet();
+}
+function addRow() {
+  const rows = state.schedule.rows;
+  const step = Number(state.schedule.step) || 7;
+  const last = rows[rows.length - 1];
+  const start = $('#tblStart').value;
+  const date = last && isISO(last.date) ? addDays(last.date, step) : (isISO(start) ? start : todayISO());
+  rows.push({
+    date, link: rows.length > 0, step: step,
+    holiday: state.settings.skipHoliday ? !!holidayName(date) : false,
+    round: last ? schedRoundOfRow(last) : 1, r1: '', r2: '',
+  });
+  recomputeDates();
+  save(); renderSheet();
+  const tr = $(`#sheetBody tr[data-row="${rows.length - 1}"]`);
+  if (tr) { tr.scrollIntoView({ block: 'center', behavior: 'smooth' }); tr.classList.add('flash'); }
+}
+function delRow(row) {
+  if (!state.schedule.rows[row]) return;
+  state.schedule.rows.splice(row, 1);
+  recomputeDates();
+  save(); renderSheet();
+}
+
+/* ---------------- 单元格浮层 ---------------- */
+function openNamePicker(row, slot) {
+  const cell = $(`[data-act="name"][data-row="${row}"][data-slot="${slot}"]`);
+  if (!cell) return;
+  const cur = state.schedule.rows[row][slot === 1 ? 'r1' : 'r2'];
+  const people = state.roster.map(p => ({ n: p.n, g: gradeNow(p).grade, sel: cur === p.n }));
+  const listHtml = q => {
+    const query = (q || '').trim();
+    const hit = people.filter(it => !query || it.n.includes(query) || it.g.includes(query));
+    let html = hit.map(it => `<button class="item ${it.sel ? 'sel' : ''}" data-pick="${esc(it.n)}">
+        <span>${esc(it.n)}</span><span class="sub">${esc(it.g)}</span></button>`).join('');
+    if (!html) html = `<div class="pr">没有匹配的名字</div>`;
+    if (query && !people.some(it => it.n === query)) {
+      html += `<div class="sep"></div><button class="item" data-pick="${esc(query)}"><span>临时填写「${esc(query)}」</span><span class="sub warn">不在名单</span></button>`;
+    }
+    return html;
+  };
+  const p = openPop(cell, `<div class="hdr">选择汇报人 · 第 ${weekNo(row)} 周</div>
+    <input class="search" placeholder="输入姓名或年级筛选"/>
+    <div class="list">${listHtml('')}</div>
+    <div class="sep"></div>
+    <button class="item" data-pick="/"><span>／　这一栏不安排</span></button>
+    <button class="item" data-pick=""><span>清空这一栏</span></button>`);
+  const list = $('.list', p), search = $('.search', p);
+  search.addEventListener('input', () => { list.innerHTML = listHtml(search.value); });
+  if (!window.matchMedia('(hover:none)').matches) setTimeout(() => search.focus(), 40);
+  p.addEventListener('click', e => {
+    const b = e.target.closest('[data-pick]');
+    if (!b) return;
+    setSlot(row, slot, b.dataset.pick);
+    closePop();
+  });
+}
+function openDatePicker(row) {
+  const cell = $(`[data-act="date"][data-row="${row}"]`);
+  const r = state.schedule.rows[row];
+  if (!cell || !r) return;
+  const hn = holidayName(r.date);
+  const p = openPop(cell, `<div class="hdr">第 ${weekNo(row)} 周 · 日期</div>
+    <input type="date" value="${isISO(r.date) ? r.date : ''}"/>
+    <label class="chk"><input type="checkbox" id="popLink" ${r.link ? 'checked' : ''}/>跟随上一条日期（+${stepOfRow(row)} 天）</label>
+    <label class="chk"><input type="checkbox" id="popHol" ${r.holiday ? 'checked' : ''}/>节假日：日期标蓝并且不排人${hn ? `（${esc(hn)}）` : ''}</label>
+    ${hn && !r.holiday ? `<div class="pr">这一周的日期在${esc(hn)}假期里</div>` : ''}`);
+  const dIn = $('input[type=date]', p), lk = $('#popLink', p), hl = $('#popHol', p);
+  dIn.addEventListener('change', () => {
+    if (!dIn.value) return;
+    r.date = dIn.value;
+    r.link = false;
+    if (hl.checked && !holidayName(r.date)) { }
+    save(); recomputeDates(); renderSheet(); closePop();
+  });
+  lk.addEventListener('change', () => {
+    r.link = lk.checked;
+    if (r.link && isISO(r.date)) r.step = Number(state.schedule.step) || 7;
+    recomputeDates(); save(); renderSheet(); closePop();
+  });
+  hl.addEventListener('change', () => {
+    r.holiday = hl.checked;
+    save(); renderSheet(); closePop();
+  });
+  if (!window.matchMedia('(hover:none)').matches) setTimeout(() => dIn.focus(), 40);
+}
+function openRowMenu(row) {
+  const cell = $(`[data-act="wk"][data-row="${row}"]`);
+  if (!cell) return;
+  const r = state.schedule.rows[row];
+  const p = openPop(cell, `<div class="hdr">第 ${weekNo(row)} 周 · ${isISO(r.date) ? r.date : '未设日期'}</div>
+    <button class="item" data-m="up"><span>上移一周</span></button>
+    <button class="item" data-m="down"><span>下移一周</span></button>
+    <div class="sep"></div>
+    <button class="item" data-m="above"><span>在上面插入一周</span></button>
+    <button class="item" data-m="below"><span>在下面插入一周</span></button>
+    <div class="sep"></div>
+    <button class="item" data-m="hol"><span>${r.holiday ? '取消节假日标记' : '标记为节假日'}</span></button>
+    <button class="item" data-m="del"><span>删除这一周</span></button>`, 214);
+  p.addEventListener('click', e => {
+    const b = e.target.closest('[data-m]');
+    if (!b) return;
+    const m = b.dataset.m;
+    closePop();
+    if (m === 'up') moveRow(row, -1);
+    else if (m === 'down') moveRow(row, 1);
+    else if (m === 'above') insertRow(row);
+    else if (m === 'below') insertRow(row + 1);
+    else if (m === 'hol') toggleHol(row);
+    else if (m === 'del') delRow(row);
+  });
+}
+
+/* ---------------- 自动安排 ---------------- */
+function pickPerson(queue, date) {
+  if (!queue.length) return '';
+  const m = isISO(date) ? Number(date.slice(5, 7)) : 0;
+  const avoidIntern = state.settings.skipIntern && m >= 6;
+  for (let k = 0; k < queue.length; k++) {
+    const p = findPerson(queue[k]);
+    if (avoidIntern && p && p.intern && gradeNow(p).grade === '研二') continue;
+    return queue.splice(k, 1)[0];
+  }
+  return queue.shift() || '';
+}
+/* 新一轮的轮流顺序：上次汇报离现在最久的人排前面 */
+function rotationOrder() {
+  const last = lastReportMap();
+  const order = rosterNames().map((n, i) => ({ n, i }));
+  order.sort((a, b) => {
+    const A = last.get(a.n) || '', B = last.get(b.n) || '';
+    if (A !== B) return A < B ? -1 : 1;
+    return a.i - b.i;
+  });
+  return order.map(o => o.n);
+}
+function fillQueue(queue, round) {
+  const rows = state.schedule.rows;
+  const step = Number(state.schedule.step) || 7;
+  let placed = 0;
+  for (let i = 0; i < rows.length && queue.length; i++) {
+    const r = rows[i];
+    if (r.holiday || schedRoundOfRow(r) !== round) continue;
+    for (const k of ['r1', 'r2']) {
+      if (r[k] === '' && queue.length) { r[k] = pickPerson(queue, r.date); placed++; }
+    }
+  }
+  let guard = 0;
+  while (queue.length && guard++ < 300) {
+    const last = rows[rows.length - 1];
+    let date;
+    if (!last) date = isISO($('#tblStart').value) ? $('#tblStart').value : todayISO();
+    else date = isISO(last.date) ? addDays(last.date, step) : todayISO();
+    const hol = state.settings.skipHoliday ? !!holidayName(date) : false;
+    const nr = { date, link: rows.length > 0, step, holiday: hol, round, r1: '', r2: '' };
+    if (hol) { nr.r1 = '/'; nr.r2 = '/'; }
+    else {
+      const a = pickPerson(queue, date);
+      const b = pickPerson(queue, date);
+      nr.r1 = a || '/';
+      nr.r2 = b || '/';
+      placed += (a ? 1 : 0) + (b ? 1 : 0);
+    }
+    rows.push(nr);
+  }
+  return placed;
+}
+function readGenOpts() {
+  const h = $('#optHoliday'), s = $('#optSkipIntern');
+  if (h) state.settings.skipHoliday = h.checked;
+  if (s) state.settings.skipIntern = s.checked;
+}
+function doContinue() {
+  const names = rosterNames();
+  if (!names.length) return toast('名单是空的，先去“名单”里添加成员', 'warn');
+  readGenOpts();
+  const rows = state.schedule.rows;
+  const round = currentRound();
+  const done = scheduledInRound(round);
+  let queue = names.filter(n => !done.has(n));
+  let target = round;
+  let newRound = false;
+  if (!queue.length) { queue = rotationOrder(); target = round + 1; newRound = true; }
+  const before = rows.length;
+  const placed = fillQueue(queue, target);
+  recomputeDates();
+  save(); renderSheet();
+  const added = state.schedule.rows.length - before;
+  const label = newRound ? `第 ${target} 轮` : `第 ${round} 轮`;
+  toast(`${label}已安排 ${placed} 人次${added ? `，新增 ${added} 周` : ''}`);
+}
+async function doRebuild() {
+  const ok = await modal({
+    title: '重排整张表',
+    bodyHtml: `<p>会清空当前排班，按名单顺序从起始日期重新排一轮，节假日自动跳过。</p><p>名单不会变动。确定重排吗？</p>`,
+    okText: '重排',
+  });
+  if (!ok) return;
+  readGenOpts();
+  const rows = state.schedule.rows;
+  const start = (rows[0] && isISO(rows[0].date)) ? rows[0].date
+    : (isISO($('#tblStart').value) ? $('#tblStart').value : todayISO());
+  state.schedule.startWeek = Number($('#tblWeek').value) || 1;
+  const hol = state.settings.skipHoliday ? !!holidayName(start) : false;
+  state.schedule.rows = [{ date: start, link: false, step: 0, holiday: hol, round: 1, r1: hol ? '/' : '', r2: hol ? '/' : '' }];
+  fillQueue(rosterNames(), 1);
+  recomputeDates();
+  save(); renderSheet();
+  toast(`已重排，共 ${state.schedule.rows.length} 周`);
+}
+
+/* =========================================================
+   名单
+   ========================================================= */
+function baseDate() {
+  const d = $('#rosterBase').value;
+  if (isISO(d)) return d;
+  const counts = {};
+  state.roster.forEach(p => { counts[p.gFrom] = (counts[p.gFrom] || 0) + 1; });
+  const best = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+  return best || '2026-09-01';
+}
+function renderRoster() {
+  const body = $('#rosterBody');
+  const base = baseDate();
+  $('#rosterBase').value = base;
+  if (!state.roster.length) {
+    body.innerHTML = `<tr><td colspan="6" style="padding:18px 12px;color:var(--muted)">名单是空的，点上面的“添加成员”开始。</td></tr>`;
+  } else {
+    body.innerHTML = state.roster.map((p, i) => {
+      const g = gradeNow(p);
+      const same = g.grade === p.g;
+      const tags = [];
+      if (g.graduated) tags.push(['warn', '可能已毕业/离组']);
+      if (p.intern) tags.push(['', '实习中']);
+      return `<tr data-i="${i}" data-id="${esc(p.id)}" draggable="true">
+        <td class="idx">${i + 1}</td>
+        <td><input class="namein" data-act="rename" data-i="${i}" value="${esc(p.n)}" spellcheck="false" autocomplete="off"/></td>
+        <td><select class="gsel" data-act="grade" data-i="${i}">${GRADES.map(x => `<option ${x === p.g ? 'selected' : ''}>${x}</option>`).join('')}</select><span class="now-inline">${g.steps ? '→ ' + g.grade : ''}</span></td>
+        <td class="col-now"><span class="grade-now ${same ? 'same' : ''}">${esc(g.grade)}${g.steps ? `<span class="arrow">↑${g.steps}</span>` : ''}</span></td>
+        <td class="col-tags">${tags.map(t => `<span class="tag ${t[0]}">${t[1]}</span>`).join('') || '<span style="color:#b9c0c8">—</span>'}</td>
+        <td><div class="rowctl">
+          ${icobtn('grip', '按住这一行可以拖动排序', 'data-drag="1"', '', 15)}
+          ${icobtn('chevUp', '上移', `data-act="pup" data-i="${i}"`, '', 15)}
+          ${icobtn('chevDown', '下移', `data-act="pdown" data-i="${i}"`, '', 15)}
+          ${icobtn('briefcase', p.intern ? '取消“实习中”标记' : '标记“实习中”（6 月起自动避开）', `data-act="intern" data-i="${i}"`, p.intern ? 'on' : '', 15)}
+          ${icobtn('trash', '从名单里删除', `data-act="pdel" data-i="${i}"`, 'danger', 15)}
+        </div></td></tr>`;
+    }).join('');
+  }
+  renderRosterSide();
+  $('#brandSub').textContent = `名单 ${state.roster.length} 人 · 排班 ${state.schedule.rows.length} 周 · 本轮第 ${currentRound()} 轮`;
+}
+function renderRosterSide() {
+  const counts = {};
+  state.roster.forEach(p => { const g = gradeNow(p).grade; counts[g] = (counts[g] || 0) + 1; });
+  const keys = Object.keys(counts).sort((a, b) => (GRADE_RANK[b] || 0) - (GRADE_RANK[a] || 0));
+  const max = Math.max(1, ...keys.map(k => counts[k]));
+  const barColor = g => /^博/.test(g) ? '#5b5bd6' : /^研/.test(g) ? '#1a6fd4' : /^大/.test(g) ? '#0f8a8a' : '#8a8f98';
+  $('#rosterTotal').textContent = `${state.roster.length} 人`;
+  $('#gradeStats').innerHTML = keys.length
+    ? keys.map(k => `<div class="stat"><span class="lb">${esc(k)}</span><span class="bar"><i style="width:${Math.round(counts[k] / max * 100)}%;background:${barColor(k)}"></i></span><span class="nv">${counts[k]}</span></div>`).join('')
+    : `<div class="empty-note">暂无成员</div>`;
+  $('#rulesList').innerHTML = AVOID_RULES.map(r => `<li>${esc(r)}</li>`).join('')
+    + `<li>一轮之内每个人排一次，同一个人两次汇报之间不要隔太近（软件里可以设“检查”阈值）。</li>`;
+}
+function renamePerson(i, name) {
+  const p = state.roster[i];
+  if (!p) return;
+  const old = p.n, next = String(name || '').trim();
+  if (!next || next === old) { renderRoster(); return; }
+  if (state.roster.some((x, k) => k !== i && x.n === next)) { toast(`名单里已经有“${next}”了`, 'warn'); renderRoster(); return; }
+  p.n = next;
+  state.schedule.rows.forEach(r => {
+    if (r.r1 === old) r.r1 = next;
+    if (r.r2 === old) r.r2 = next;
+  });
+  save(); renderRoster(); renderSheet();
+}
+function addPerson(name, grade) {
+  const n = String(name || '').trim();
+  if (!n) return;
+  if (state.roster.some(p => p.n === n)) { toast(`名单里已经有“${n}”了`, 'warn'); return; }
+  state.roster.push({ id: uid(), n, g: grade || '研一', gFrom: baseDate(), intern: false });
+  save(); renderRoster(); renderSheet();
+}
+async function askAddPerson() {
+  const html = `<label style="display:block;font-size:12.5px;color:var(--muted);margin-bottom:6px">姓名</label>
+    <input id="npName" class="search" style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit" placeholder="例如 张三"/>
+    <label style="display:block;font-size:12.5px;color:var(--muted);margin:12px 0 6px">年级</label>
+    <select id="npGrade" class="gsel" style="border:1px solid var(--line);border-radius:8px;padding:7px 8px;width:100%">${GRADES.map(g => `<option ${g === '研一' ? 'selected' : ''}>${g}</option>`).join('')}</select>`;
+  const res = await modal({
+    title: '添加成员', bodyHtml: html, okText: '添加',
+    onOk: el => ({ name: el.querySelector('#npName').value, grade: el.querySelector('#npGrade').value }),
+  });
+  if (!res) return;
+  addPerson(res.name, res.grade);
+}
+function syncGrades() {
+  const today = todayISO();
+  let changed = 0, graduated = [];
+  state.roster.forEach(p => {
+    const g = gradeNow(p);
+    if (g.grade !== p.g) { p.g = g.grade; p.gFrom = today; changed++; if (g.graduated) graduated.push(p.n); }
+    else p.gFrom = today;
+  });
+  save(); renderRoster(); renderSheet();
+  toast(changed ? `已更新 ${changed} 人的年级${graduated.length ? '（' + graduated.join('、') + ' 可能已离组）' : ''}` : '年级已经是最新的');
+}
+
+/* =========================================================
+   导出 xlsx（自己写 zip + xlsx，不依赖任何外部库）
+   ========================================================= */
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(bytes) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function zipStore(entries) {
+  const enc = new TextEncoder();
+  const chunks = [], central = [];
+  let offset = 0;
+  const now = new Date();
+  const dosTime = ((now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1)) & 0xFFFF;
+  const dosDate = (((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate()) & 0xFFFF;
+  for (const e of entries) {
+    const nameBytes = enc.encode(e.name);
+    const data = typeof e.data === 'string' ? enc.encode(e.data) : e.data;
+    const crc = crc32(data);
+    const local = new Uint8Array(30 + nameBytes.length);
+    const lv = new DataView(local.buffer);
+    lv.setUint32(0, 0x04034b50, true);
+    lv.setUint16(4, 20, true);
+    lv.setUint16(6, 0x0800, true);
+    lv.setUint16(8, 0, true);
+    lv.setUint16(10, dosTime, true);
+    lv.setUint16(12, dosDate, true);
+    lv.setUint32(14, crc, true);
+    lv.setUint32(18, data.length, true);
+    lv.setUint32(22, data.length, true);
+    lv.setUint16(26, nameBytes.length, true);
+    lv.setUint16(28, 0, true);
+    local.set(nameBytes, 30);
+    chunks.push(local, data);
+    const cd = new Uint8Array(46 + nameBytes.length);
+    const cv = new DataView(cd.buffer);
+    cv.setUint32(0, 0x02014b50, true);
+    cv.setUint16(4, 20, true);
+    cv.setUint16(6, 20, true);
+    cv.setUint16(8, 0x0800, true);
+    cv.setUint16(10, 0, true);
+    cv.setUint16(12, dosTime, true);
+    cv.setUint16(14, dosDate, true);
+    cv.setUint32(16, crc, true);
+    cv.setUint32(20, data.length, true);
+    cv.setUint32(24, data.length, true);
+    cv.setUint16(28, nameBytes.length, true);
+    cv.setUint16(30, 0, true);
+    cv.setUint16(32, 0, true);
+    cv.setUint16(34, 0, true);
+    cv.setUint16(36, 0, true);
+    cv.setUint32(38, 0, true);
+    cv.setUint32(42, offset, true);
+    cd.set(nameBytes, 46);
+    central.push(cd);
+    offset += local.length + data.length;
+  }
+  const cdSize = central.reduce((a, b) => a + b.length, 0);
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0, 0x06054b50, true);
+  ev.setUint16(8, entries.length, true);
+  ev.setUint16(10, entries.length, true);
+  ev.setUint32(12, cdSize, true);
+  ev.setUint32(16, offset, true);
+  return new Blob([...chunks, ...central, eocd], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+function escXml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c]))
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+}
+const colName = i => { let s = ''; i++; while (i > 0) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
+const excelSerial = isoStr => { const d = parseISO(isoStr); return Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(1899, 11, 30)) / 86400000); };
+function sheetXml({ cols, rows }) {
+  const colsXml = cols && cols.length
+    ? `<cols>${cols.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('')}</cols>` : '';
+  const rowsXml = rows.map((r, ri) => {
+    const cells = (r.cells || []).map((c, ci) => {
+      const ref = colName(ci) + (ri + 1);
+      if (!c || c.v === '' || c.v == null) return `<c r="${ref}" s="${(c && c.s) || 0}"/>`;
+      if (c.t === 'n') return `<c r="${ref}" s="${c.s || 0}"><v>${c.v}</v></c>`;
+      return `<c r="${ref}" s="${c.s || 0}" t="inlineStr"><is><t xml:space="preserve">${escXml(c.v)}</t></is></c>`;
+    }).join('');
+    return `<row r="${ri + 1}" ht="${r.ht || 20}" customHeight="1">${cells}</row>`;
+  }).join('');
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"/></sheetViews>${colsXml}<sheetData>${rowsXml}</sheetData></worksheet>`;
+}
+const STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<numFmts count="1"><numFmt numFmtId="164" formatCode="yyyy\\-mm\\-dd"/></numFmts>
+<fonts count="4">
+<font><sz val="11"/><color theme="1"/><name val="等线"/><charset val="134"/></font>
+<font><b/><sz val="12"/><color theme="1"/><name val="等线"/><charset val="134"/></font>
+<font><sz val="11"/><color rgb="FF4FADEA"/><name val="等线"/><charset val="134"/></font>
+<font><b/><sz val="11"/><color theme="1"/><name val="等线"/><charset val="134"/></font>
+</fonts>
+<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>
+<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>
+<border><left style="thin"><color rgb="FF000000"/></left><right style="thin"><color rgb="FF000000"/></right><top style="thin"><color rgb="FF000000"/></top><bottom style="thin"><color rgb="FF000000"/></bottom><diagonal/></border>
+</borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="7">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="164" fontId="2" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+</cellXfs>
+<cellStyles count="1"><cellStyle name="常规" xfId="0" builtinId="0"/></cellStyles>
+<dxfs count="0"/><tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/>
+</styleSheet>`;
+function buildXlsx() {
+  const sw = Number(state.schedule.startWeek) || 1;
+  const sRows = [{ ht: 22, cells: ['周次', '日期', '论文报告1', '论文报告2'].map(v => ({ v, s: 1 })) }];
+  state.schedule.rows.forEach((r, i) => {
+    sRows.push({
+      ht: 20, cells: [
+        { v: String(sw + i), s: 2 },
+        isISO(r.date) ? { v: String(excelSerial(r.date)), t: 'n', s: r.holiday ? 4 : 3 } : { v: '', s: r.holiday ? 4 : 3 },
+        { v: r.r1, s: 2 },
+        { v: r.r2, s: 2 },
+      ],
+    });
+  });
+  const nRows = [{ ht: 22, cells: ['序号', '姓名', '年级'].map(v => ({ v, s: 5 })) }];
+  state.roster.forEach((p, i) => {
+    nRows.push({ ht: 20, cells: [{ v: String(i + 1), s: 2 }, { v: p.n, s: 2 }, { v: gradeNow(p).grade, s: 2 }] });
+  });
+  const files = [
+    {
+      name: '[Content_Types].xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`
+    },
+    {
+      name: '_rels/.rels', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`
+    },
+    {
+      name: 'xl/workbook.xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="排班表" sheetId="1" r:id="rId1"/><sheet name="名单" sheetId="2" r:id="rId2"/></sheets></workbook>`
+    },
+    {
+      name: 'xl/_rels/workbook.xml.rels', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`
+    },
+    { name: 'xl/styles.xml', data: STYLES_XML },
+    { name: 'xl/worksheets/sheet1.xml', data: sheetXml({ cols: [7, 14, 12, 12], rows: sRows }) },
+    { name: 'xl/worksheets/sheet2.xml', data: sheetXml({ cols: [6, 12, 8], rows: nRows }) },
+  ];
+  return zipStore(files);
+}
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 8000);
+}
+function exportXlsx() {
+  try {
+    const name = `组会排班-${todayISO().replace(/-/g, '')}.xlsx`;
+    downloadBlob(buildXlsx(), name);
+    toast(`已导出 ${name}`);
+  } catch (e) { toast('导出失败：' + e.message, 'err'); }
+}
+
+/* ---------------- 读 xlsx（只为了取名单） ---------------- */
+async function inflateRaw(bytes) {
+  if (typeof DecompressionStream === 'undefined') {
+    throw new Error('这个浏览器版本太旧，读不了 xlsx（iPhone 需要 iOS 16.4 以上）');
+  }
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+async function unzip(bytes) {
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let eocd = -1;
+  for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 66000); i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('这不是一个有效的 xlsx 文件');
+  const count = dv.getUint16(eocd + 10, true), cdOff = dv.getUint32(eocd + 16, true);
+  const out = new Map();
+  let p = cdOff;
+  for (let k = 0; k < count; k++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const method = dv.getUint16(p + 10, true);
+    const compSize = dv.getUint32(p + 20, true);
+    const nameLen = dv.getUint16(p + 28, true), extraLen = dv.getUint16(p + 30, true), cmtLen = dv.getUint16(p + 32, true);
+    const localOff = dv.getUint32(p + 42, true);
+    const name = new TextDecoder().decode(bytes.subarray(p + 46, p + 46 + nameLen));
+    const lnameLen = dv.getUint16(localOff + 26, true), lextraLen = dv.getUint16(localOff + 28, true);
+    const dataStart = localOff + 30 + lnameLen + lextraLen;
+    let data = bytes.subarray(dataStart, dataStart + compSize);
+    if (method === 8) data = await inflateRaw(data);
+    out.set(name, data);
+    p += 46 + nameLen + extraLen + cmtLen;
+  }
+  return out;
+}
+const colIdx = s => { let n = 0; for (const ch of String(s).toUpperCase()) n = n * 26 + (ch.charCodeAt(0) - 64); return n - 1; };
+async function readXlsxPeople(file) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const files = await unzip(bytes);
+  const td = new TextDecoder();
+  const get = n => files.get(n) ? td.decode(files.get(n)) : null;
+  const parse = s => new DOMParser().parseFromString(s, 'application/xml');
+  let shared = [];
+  const ss = get('xl/sharedStrings.xml');
+  if (ss) {
+    const doc = parse(ss);
+    shared = Array.from(doc.getElementsByTagName('si')).map(si => Array.from(si.getElementsByTagName('t')).map(t => t.textContent).join(''));
+  }
+  const relsDoc = parse(get('xl/_rels/workbook.xml.rels'));
+  const relMap = {};
+  Array.from(relsDoc.getElementsByTagName('Relationship')).forEach(r => { relMap[r.getAttribute('Id')] = r.getAttribute('Target'); });
+  const wb = parse(get('xl/workbook.xml'));
+  const sheets = Array.from(wb.getElementsByTagName('sheet')).map(s => {
+    let target = String(relMap[s.getAttribute('r:id')] || '');
+    target = target.replace(/^\//, '');
+    if (!target.startsWith('xl/')) target = 'xl/' + target;
+    return { name: s.getAttribute('name'), target };
+  });
+  const isGrade = v => GRADES.includes(v) || v === '毕业';
+  const SKIP = new Set(['姓名', '名字', '年级', '序号', '周次', '日期', '论文报告1', '论文报告2', '现在年级', '状态', '操作', '备注', '老师', '已毕业', '成员']);
+  const isName = v => !SKIP.has(v) && !isGrade(v) && /^[\u4e00-\u9fff·A-Za-z]{2,8}$/.test(v);
+  const found = [], seen = new Set();
+  const named = sheets.filter(s => /名单|成员/.test(String(s.name || '')));
+  for (const sh of (named.length ? named : sheets)) {
+    const xml = get(sh.target);
+    if (!xml) continue;
+    const doc = parse(xml);
+    for (const rEl of Array.from(doc.getElementsByTagName('row'))) {
+      const cells = Array.from(rEl.getElementsByTagName('c')).map(c => {
+        const ref = c.getAttribute('r') || '';
+        const t = c.getAttribute('t');
+        let v = '';
+        if (t === 'inlineStr') {
+          const is = c.getElementsByTagName('is')[0];
+          v = is ? Array.from(is.getElementsByTagName('t')).map(x => x.textContent).join('') : '';
+        } else {
+          const vEl = c.getElementsByTagName('v')[0];
+          const raw = vEl ? vEl.textContent : '';
+          v = t === 's' ? (shared[Number(raw)] || '') : raw;
+        }
+        return { i: colIdx(ref.replace(/\d+/g, '')), v: String(v).trim() };
+      });
+      for (let k = 0; k < cells.length - 1; k++) {
+        const a = cells[k], b = cells[k + 1];
+        if (!a.v || !b.v) continue;
+        if (b.i === a.i + 1 && isName(a.v) && isGrade(b.v) && !seen.has(a.v)) {
+          seen.add(a.v);
+          found.push({ n: a.v, g: b.v });
+        }
+      }
+    }
+  }
+  return found;
+}
+async function importRosterFromXlsx(file) {
+  try {
+    toast('正在读取…');
+    const found = await readXlsxPeople(file);
+    if (!found.length) return toast('没读到“姓名 + 年级”，检查一下表格的结构', 'warn');
+    const ok = await modal({
+      title: '从 Excel 导入名单',
+      bodyHtml: `<p>读到 ${found.length} 位成员：</p><div class="plist">${found.map(p => `<span class="tag">${esc(p.n)} · ${esc(p.g)}</span>`).join('')}</div>
+        <p style="margin-top:12px;color:var(--muted)">确认后会替换当前名单（排班表不动，名字对不上的会在“检查”里提示）。</p>`,
+      okText: '替换名单',
+    });
+    if (!ok) return;
+    const base = baseDate();
+    state.roster = found.map(p => ({ id: uid(), n: p.n, g: p.g, gFrom: base, intern: false }));
+    save(); renderRoster(); renderSheet();
+    toast(`名单已替换，共 ${found.length} 人`);
+  } catch (e) {
+    toast('读取失败：' + e.message, 'err');
+  }
+}
+
+/* ---------------- 备份 / 分享 ---------------- */
+function exportBackup() {
+  const name = `组会排班备份-${todayISO().replace(/-/g, '')}.json`;
+  downloadBlob(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }), name);
+  toast(`已导出 ${name}`);
+}
+async function importBackup(file) {
+  try {
+    const txt = await file.text();
+    const obj = JSON.parse(txt);
+    if (!obj || !obj.roster || !obj.schedule) throw new Error('文件内容不是备份数据');
+    const ok = await modal({
+      title: '导入备份',
+      bodyHtml: `<p>备份里有 <b>${obj.roster.length}</b> 人和 <b>${obj.schedule.rows.length}</b> 周排班，导入后会覆盖当前数据。</p>`,
+      okText: '覆盖导入',
+    });
+    if (!ok) return;
+    state = normalize(obj);
+    save(); renderSheet(); renderRoster();
+    toast('备份已导入');
+  } catch (e) { toast('导入失败：' + e.message, 'err'); }
+}
+function encodeState() {
+  const packed = {
+    v: 1, se: state.settings, sw: state.schedule.startWeek, st: state.schedule.step,
+    r: state.roster.map(p => [p.n, p.g, p.gFrom, p.intern ? 1 : 0]),
+    w: state.schedule.rows.map(r => [r.date, r.r1, r.r2, r.holiday ? 1 : 0, r.link ? 1 : 0, r.step || 0, r.round || 1]),
+  };
+  const bytes = new TextEncoder().encode(JSON.stringify(packed));
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function decodeState(str) {
+  const b64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  const bin = atob(b64 + '='.repeat((4 - b64.length % 4) % 4));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const p = JSON.parse(new TextDecoder().decode(bytes));
+  return normalize({
+    v: 1, ui: { view: 'schedule' }, settings: p.se || {},
+    schedule: { startWeek: p.sw || 1, step: p.st || 7, rows: (p.w || []).map(a => ({ date: a[0], r1: a[1], r2: a[2], holiday: !!a[3], link: !!a[4], step: a[5], round: a[6] })) },
+    roster: (p.r || []).map(a => ({ id: uid(), n: a[0], g: a[1], gFrom: a[2], intern: !!a[3] })),
+  });
+}
+async function shareLink() {
+  if (location.protocol === 'file:') {
+    toast('本地打开时用“导出备份 / 导入备份”搬数据', 'warn');
+    return;
+  }
+  const url = location.origin + location.pathname + '#d=' + encodeState();
+  const ok = await modal({
+    title: '把这份数据发给另一个设备',
+    bodyHtml: `<p>复制下面这条链接，发到手机（或电脑）上打开，就会提示导入这份数据：</p>
+      <textarea readonly style="width:100%;height:96px;margin-top:8px;font-size:12px;border:1px solid var(--line);border-radius:8px;padding:8px;font-family:ui-monospace,Menlo,monospace">${esc(url)}</textarea>
+      <p style="margin-top:10px;color:var(--muted)">人数多、周数多的时候链接会很长，这时用“导出备份”的文件更稳。</p>`,
+    okText: '复制链接',
+  });
+  if (!ok) return;
+  try { await navigator.clipboard.writeText(url); toast('链接已复制'); }
+  catch (e) { toast('复制失败，手动选一下上面的文字', 'warn'); }
+}
+async function handleSharedHash() {
+  const m = /[#&]d=([A-Za-z0-9\-_]+)/.exec(location.hash || '');
+  if (!m) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  try {
+    const st = decodeState(m[1]);
+    const ok = await modal({
+      title: '收到一份排班数据',
+      bodyHtml: `<p>链接里有 <b>${st.roster.length}</b> 人和 <b>${st.schedule.rows.length}</b> 周排班。导入会覆盖当前数据。</p>`,
+      okText: '导入',
+    });
+    if (!ok) return;
+    state = st;
+    save(); renderSheet(); renderRoster();
+    toast('数据已导入');
+  } catch (e) { toast('链接里的数据读不出来', 'err'); }
+}
+
+/* ---------------- 视图切换 / 打印 / 纯净视图 ---------------- */
+function setView(v) {
+  state.ui.view = v;
+  document.body.dataset.view = v;
+  $$('#tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.view === v));
+  $$('.view').forEach(s => s.classList.toggle('active', s.id === 'view-' + v));
+  if (v === 'roster') renderRoster();
+  if (v === 'schedule') renderSheet();
+  if (v === 'export') {
+    $('#xlsxName').textContent = `组会排班-${todayISO().replace(/-/g, '')}.xlsx`;
+  }
+  save();
+  closePop();
+}
+function toggleClean(on) {
+  document.body.classList.toggle('clean', on);
+  $('#cleanHint').hidden = !on;
+  closePop();
+}
+
+/* =========================================================
+   事件
+   ========================================================= */
+function bindEvents() {
+  document.addEventListener('click', e => {
+    const tab = e.target.closest('#tabs .tab');
+    if (tab) return setView(tab.dataset.view);
+    const g = e.target.closest('[data-goto]');
+    if (g) {
+      const i = Number(g.dataset.goto);
+      const tr = $(`#sheetBody tr[data-row="${i}"]`);
+      if (tr) {
+        tr.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        $$('#sheetBody tr').forEach(x => x.classList.remove('flash'));
+        tr.classList.add('flash');
+        setTimeout(() => tr.classList.remove('flash'), 1200);
+      }
+      return;
+    }
+    const b = e.target.closest('[data-act]');
+    if (!b) return;
+    const act = b.dataset.act;
+    const row = b.dataset.row != null ? Number(b.dataset.row) : null;
+    const i = b.dataset.i != null ? Number(b.dataset.i) : null;
+    switch (act) {
+      case 'name': openNamePicker(row, Number(b.dataset.slot)); break;
+      case 'date': openDatePicker(row); break;
+      case 'wk': openRowMenu(row); break;
+      case 'link': toggleLink(row); break;
+      case 'hol': toggleHol(row); break;
+      case 'up': moveRow(row, -1); break;
+      case 'down': moveRow(row, 1); break;
+      case 'del': delRow(row); break;
+      case 'continue': doContinue(); break;
+      case 'rebuild': doRebuild(); break;
+      case 'pup': if (i > 0) { const t = state.roster[i]; state.roster[i] = state.roster[i - 1]; state.roster[i - 1] = t; save(); renderRoster(); } break;
+      case 'pdown': if (i < state.roster.length - 1) { const t = state.roster[i]; state.roster[i] = state.roster[i + 1]; state.roster[i + 1] = t; save(); renderRoster(); } break;
+      case 'intern': state.roster[i].intern = !state.roster[i].intern; save(); renderRoster(); break;
+      case 'pdel': {
+        const p = state.roster[i];
+        if (!p) break;
+        const used = state.schedule.rows.some(r => r.r1 === p.n || r.r2 === p.n);
+        if (used && !confirm(`“${p.n}”还在排班表里，确定从名单删除吗？`)) break;
+        state.roster.splice(i, 1);
+        save(); renderRoster(); renderSheet();
+        break;
+      }
+    }
+  });
+  document.addEventListener('change', e => {
+    const el = e.target.closest('[data-act]');
+    if (!el) return;
+    const i = el.dataset.i != null ? Number(el.dataset.i) : null;
+    if (el.dataset.act === 'rename') renamePerson(i, el.value);
+    else if (el.dataset.act === 'grade') {
+      const p = state.roster[i];
+      if (!p) return;
+      p.g = el.value;
+      p.gFrom = baseDate();
+      save(); renderRoster(); renderSheet();
+    }
+  });
+  document.addEventListener('change', e => {
+    if (e.target.id === 'optHoliday' || e.target.id === 'optSkipIntern') { readGenOpts(); save(); }
+  });
+  $('#tblStart').addEventListener('change', e => {
+    const v = e.target.value;
+    if (!isISO(v)) return;
+    const rows = state.schedule.rows;
+    if (!rows.length) { state.schedule.rows.push({ date: v, link: false, step: 0, holiday: false, round: 1, r1: '', r2: '' }); }
+    else { rows[0].date = v; rows[0].link = false; }
+    recomputeDates(); save(); renderSheet();
+  });
+  $('#tblStep').addEventListener('change', e => {
+    const n = Math.max(1, Math.min(60, Number(e.target.value) || 7));
+    state.schedule.step = n;
+    state.schedule.rows.forEach(r => { if (r.link) r.step = n; });
+    recomputeDates(); save(); renderSheet();
+  });
+  $('#tblWeek').addEventListener('change', e => {
+    state.schedule.startWeek = Math.max(1, Number(e.target.value) || 1);
+    save(); renderSheet();
+  });
+  $('#btnAddRow').addEventListener('click', addRow);
+  $('#btnClean').addEventListener('click', () => toggleClean(true));
+  $('#cleanHint').addEventListener('click', () => toggleClean(false));
+  $('#btnPrint').addEventListener('click', () => window.print());
+  $('#btnPrint2').addEventListener('click', () => window.print());
+  $('#btnAddPerson').addEventListener('click', askAddPerson);
+  $('#btnSyncGrades').addEventListener('click', syncGrades);
+  $('#rosterBase').addEventListener('change', e => {
+    const v = e.target.value;
+    if (!isISO(v)) return;
+    state.roster.forEach(p => { p.gFrom = v; });
+    save(); renderRoster();
+  });
+  const pickXlsx = () => $('#fileXlsx').click();
+  $('#btnImportRoster').addEventListener('click', pickXlsx);
+  $('#btnImportRoster2').addEventListener('click', pickXlsx);
+  $('#fileXlsx').addEventListener('change', e => {
+    const f = e.target.files[0];
+    if (f) importRosterFromXlsx(f);
+    e.target.value = '';
+  });
+  $('#btnXlsx').addEventListener('click', exportXlsx);
+  $('#btnShare').addEventListener('click', shareLink);
+  $('#btnBackup').addEventListener('click', exportBackup);
+  $('#btnRestore').addEventListener('click', () => $('#fileJson').click());
+  $('#fileJson').addEventListener('change', e => {
+    const f = e.target.files[0];
+    if (f) importBackup(f);
+    e.target.value = '';
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.body.classList.contains('clean')) toggleClean(false);
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'p' && document.body.classList.contains('clean')) { }
+  });
+  window.addEventListener('resize', closePop);
+  const onAnyScroll = e => {
+    if (!popOpen) return;
+    const t = e.target;
+    if (t && t.nodeType === 1 && popEl().contains(t)) return;
+    closePop();
+  };
+  window.addEventListener('scroll', onAnyScroll, true);
+  document.addEventListener('scroll', onAnyScroll, true);
+  bindRosterDnD();
+}
+function bindRosterDnD() {
+  const body = $('#rosterBody');
+  let from = null;
+  body.addEventListener('dragstart', e => {
+    const tr = e.target.closest('tr');
+    if (!tr) return;
+    from = Number(tr.dataset.i);
+    tr.classList.add('dragging');
+    try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(from)); } catch (_) { }
+  });
+  body.addEventListener('dragover', e => {
+    const tr = e.target.closest('tr');
+    if (!tr || from == null) return;
+    e.preventDefault();
+    const r = tr.getBoundingClientRect();
+    const before = (e.clientY - r.top) < r.height / 2;
+    $$('tr', body).forEach(x => x.classList.remove('drop-before', 'drop-after'));
+    tr.classList.add(before ? 'drop-before' : 'drop-after');
+  });
+  body.addEventListener('drop', e => {
+    e.preventDefault();
+    const tr = e.target.closest('tr');
+    $$('tr', body).forEach(x => x.classList.remove('drop-before', 'drop-after'));
+    if (!tr || from == null) return;
+    let to = Number(tr.dataset.i);
+    const r = tr.getBoundingClientRect();
+    if ((e.clientY - r.top) >= r.height / 2) to += 1;
+    const item = state.roster.splice(from, 1)[0];
+    if (to > from) to -= 1;
+    state.roster.splice(to, 0, item);
+    from = null;
+    save(); renderRoster();
+  });
+  body.addEventListener('dragend', () => {
+    from = null;
+    $$('tr', body).forEach(x => x.classList.remove('dragging', 'drop-before', 'drop-after'));
+  });
+}
+
+/* ---------------- 启动 ---------------- */
+function registerSW() {
+  if (!('serviceWorker' in navigator)) return;
+  if (!/^https?:$/.test(location.protocol)) return;
+  navigator.serviceWorker.register('sw.js').catch(() => { });
+}
+function storageOK() {
+  try { localStorage.setItem('__probe', '1'); localStorage.removeItem('__probe'); return true; }
+  catch (e) { return false; }
+}
+function init() {
+  hydrateIcons();
+  if (window.matchMedia('(hover:none)').matches || 'ontouchstart' in window) document.body.classList.add('touch');
+  bindEvents();
+  renderSheet();
+  renderRoster();
+  setView(state.ui.view || 'schedule');
+  handleSharedHash();
+  registerSW();
+  if (!storageOK()) setTimeout(() => toast('这个浏览器不允许保存数据，请用 Safari 普通模式打开，并常用“导出备份”', 'warn'), 1500);
+}
+init();
+</script>
+</body>
+</html>
