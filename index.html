@@ -59,6 +59,7 @@ main{flex:1;overflow:auto;padding:16px 16px 40px}
 .btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
 .btn.ghost:hover{background:var(--soft);color:var(--ink)}
 .btn.danger:hover{background:var(--err-soft);border-color:#e9b6b3;color:var(--err)}
+.btn.on{background:var(--accent-soft);border-color:#cfe3fa;color:var(--accent-ink)}
 .btn:disabled{opacity:.45;cursor:default}
 .btn.sm{height:30px;padding:0 10px;font-size:13px}
 .fld{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 10px;background:#fff;border:1px solid var(--line2);border-radius:8px}
@@ -93,6 +94,9 @@ td.ed:hover{background:#f5faff}
 .cellbtn.hol{color:var(--holiday)}
 .cellbtn.blank{color:transparent}
 .cellbtn.blank:hover{color:#c3ccd6}
+.cellbtn.dup{background:#fdf3da}
+.cellbtn.dup.deep{background:#f9e2c4}
+.cellbtn .dup-n{font-size:11px;line-height:1;margin-left:2px;vertical-align:super;color:#9a5606;font-weight:700}
 .rowctl{display:flex;gap:1px;opacity:.2;transition:opacity .12s ease}
 tr:hover .rowctl,tr:focus-within .rowctl{opacity:1}
 .wk-cell{color:#000}
@@ -176,8 +180,10 @@ select.gsel:hover{background:var(--soft)}
 .pop .item{display:flex;align-items:center;gap:8px;width:100%;padding:7px 9px;border:0;border-radius:8px;background:transparent;font:inherit;font-size:14px;color:var(--ink);text-align:left;cursor:pointer}
 .pop .item:hover{background:var(--soft)}
 .pop .item.sel{background:var(--accent-soft);color:var(--accent-ink);font-weight:700}
-.pop .item .sub{margin-left:auto;font-size:12px;font-weight:400;color:var(--muted)}
+.pop .item .sub{margin-left:auto;font-size:11.5px;font-weight:400;color:var(--muted);white-space:nowrap}
 .pop .item .sub.warn{color:var(--warn)}
+.pop .item .pn{display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pop .item .pg{flex:0 0 auto;font-size:11.5px;font-weight:400;color:var(--muted);background:var(--soft);border:1px solid var(--line);border-radius:99px;padding:1px 6px}
 .pop .sep{height:1px;background:var(--line);margin:3px 2px}
 .pop .pr{display:flex;align-items:center;gap:8px;padding:2px 4px;font-size:13px;color:var(--muted)}
 .pop input[type=date]{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13.5px}
@@ -304,6 +310,7 @@ body.touch table.sheet th,body.touch table.sheet td{height:34px}
       <label class="fld"><span>间隔</span><input type="number" id="tblStep" min="1" max="60" step="1"/><span>天</span></label>
       <label class="fld"><span>起始周次</span><input type="number" id="tblWeek" min="1" max="99" step="1"/></label>
       <div class="grow"></div>
+      <button class="btn" id="btnDup" data-icon="highlighter"><span>重复提示</span></button>
       <button class="btn" id="btnAddRow" data-icon="plus"><span>加一周</span></button>
       <button class="btn" id="btnClean" data-icon="maximize"><span>纯净视图</span></button>
       <button class="btn" id="btnPrint" data-icon="printer"><span>打印</span></button>
@@ -461,6 +468,7 @@ const ICONS = {
   maximize: '<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>',
   briefcase: '<path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/>',
   cap: '<path d="M21.42 10.92a1 1 0 0 0-.02-1.84L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.83l8.57 3.91a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>',
+  highlighter: '<path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/>',
 };
 function svgIcon(name, size) {
   const p = ICONS[name] || '';
@@ -652,7 +660,7 @@ const KEY = 'zuhui-paiban-v1';
 function normalize(s) {
   s.v = 1;
   s.ui = s.ui || { view: 'schedule' };
-  s.settings = Object.assign({ minGap: 3, skipHoliday: true }, s.settings || {});
+  s.settings = Object.assign({ minGap: 3, skipHoliday: true, skipIntern: false, dupHint: true }, s.settings || {});
   s.roster = Array.isArray(s.roster) ? s.roster : [];
   s.roster.forEach(p => { p.id = p.id || uid(); p.g = p.g || '研一'; p.gFrom = p.gFrom || todayISO(); });
   s.schedule = s.schedule || { startWeek: 1, step: 7, rows: [] };
@@ -713,14 +721,42 @@ function lastReportMap() {
 }
 
 /* ---------------- 排班表渲染 ---------------- */
-function cellHtml(name, row, slot) {
+/* 统计每个人在整张表里第几次出现（用于重复汇报提示） */
+function occurrenceInfo() {
+  const total = new Map();
+  const idx = [];
+  state.schedule.rows.forEach(r => {
+    const cellIdx = [null, null];
+    ['r1', 'r2'].forEach((k, s) => {
+      const n = r[k];
+      if (!n || n === '/') return;
+      const c = (total.get(n) || 0) + 1;
+      total.set(n, c);
+      cellIdx[s] = c;
+    });
+    idx.push(cellIdx);
+  });
+  return { total, idx };
+}
+function lastWeekOf() {
+  const m = new Map();
+  state.schedule.rows.forEach((r, i) => {
+    ['r1', 'r2'].forEach(k => { const n = r[k]; if (n && n !== '/') m.set(n, i); });
+  });
+  return m;
+}
+const dupHintOn = () => state.settings.dupHint !== false;
+function cellHtml(name, row, slot, occ) {
   const empty = !name;
-  return `<button class="cellbtn ${empty ? 'blank' : ''}" data-act="name" data-row="${row}" data-slot="${slot}"
-    title="${empty ? '点击选择汇报人' : esc(name)}">${empty ? '＋' : esc(name)}</button>`;
+  const dup = !empty && name !== '/' && dupHintOn() && occ >= 2;
+  const title = empty ? '点击选择汇报人' : (dup ? `${name} · 第 ${occ} 次汇报` : name);
+  return `<button class="cellbtn ${empty ? 'blank' : ''}${dup ? ' dup' + (occ > 2 ? ' deep' : '') : ''}" data-act="name" data-row="${row}" data-slot="${slot}"
+    title="${esc(title)}">${empty ? '＋' : esc(name)}${dup ? `<sup class="dup-n">${occ}</sup>` : ''}</button>`;
 }
 function renderSheet() {
   const rows = state.schedule.rows;
   const body = $('#sheetBody');
+  const occ = occurrenceInfo();
   body.innerHTML = rows.map((r, i) => {
     const hol = !!r.holiday;
     const dateTxt = isISO(r.date) ? r.date : '选择日期';
@@ -729,8 +765,8 @@ function renderSheet() {
       <td class="wk-cell ed"><button class="cellbtn" data-act="wk" data-row="${i}" title="第 ${weekNo(i)} 周 · 行操作"><span>${weekNo(i)}</span><span class="wk-car">⌄</span></button></td>
       <td class="ed"><button class="cellbtn ${hol ? 'hol' : ''} ${isISO(r.date) ? '' : 'blank'}" data-act="date" data-row="${i}"
         title="${esc((r.date || '未设日期') + (hn ? ' · ' + hn : ''))}">${esc(dateTxt)}</button></td>
-      <td class="ed">${cellHtml(r.r1, i, 1)}</td>
-      <td class="ed">${cellHtml(r.r2, i, 2)}</td>
+      <td class="ed">${cellHtml(r.r1, i, 1, occ.idx[i][0])}</td>
+      <td class="ed">${cellHtml(r.r2, i, 2, occ.idx[i][1])}</td>
       <td class="gap"></td>
       <td class="ctl"><div class="rowctl">
         ${icobtn(r.link ? 'link' : 'unlink', r.link ? '日期跟随上一条（+' + stepOfRow(i) + ' 天）' : '日期已固定，不跟随', `data-act="link" data-row="${i}"`, r.link ? 'on' : '')}
@@ -743,6 +779,12 @@ function renderSheet() {
   $('#tblStart').value = rows.length && isISO(rows[0].date) ? rows[0].date : '';
   $('#tblStep').value = state.schedule.step;
   $('#tblWeek').value = state.schedule.startWeek;
+  const bd = $('#btnDup');
+  if (bd) {
+    const on = dupHintOn();
+    bd.classList.toggle('on', on);
+    bd.title = on ? '重复汇报提示：已开启（同一人第 2 次起加深底色）' : '重复汇报提示：已关闭';
+  }
   renderSide();
   const n = rows.length;
   $('#brandSub').textContent = `名单 ${state.roster.length} 人 · 排班 ${n} 周 · 本轮第 ${currentRound()} 轮`;
@@ -943,12 +985,19 @@ function openNamePicker(row, slot) {
   const cell = $(`[data-act="name"][data-row="${row}"][data-slot="${slot}"]`);
   if (!cell) return;
   const cur = state.schedule.rows[row][slot === 1 ? 'r1' : 'r2'];
-  const people = state.roster.map(p => ({ n: p.n, g: gradeNow(p).grade, sel: cur === p.n }));
+  const occ = occurrenceInfo();
+  const last = lastWeekOf();
+  const people = state.roster.map(p => ({
+    n: p.n, g: gradeNow(p).grade, sel: cur === p.n,
+    t: occ.total.get(p.n) || 0,
+    lw: last.has(p.n) ? weekNo(last.get(p.n)) : null,
+  }));
   const listHtml = q => {
     const query = (q || '').trim();
     const hit = people.filter(it => !query || it.n.includes(query) || it.g.includes(query));
     let html = hit.map(it => `<button class="item ${it.sel ? 'sel' : ''}" data-pick="${esc(it.n)}">
-        <span>${esc(it.n)}</span><span class="sub">${esc(it.g)}</span></button>`).join('');
+        <span class="pn">${esc(it.n)}<span class="pg">${esc(it.g)}</span></span>
+        <span class="sub">${it.t ? `已排 ${it.t} 次 · 上次 第 ${it.lw} 周` : '未排'}</span></button>`).join('');
     if (!html) html = `<div class="pr">没有匹配的名字</div>`;
     if (query && !people.some(it => it.n === query)) {
       html += `<div class="sep"></div><button class="item" data-pick="${esc(query)}"><span>临时填写「${esc(query)}」</span><span class="sub warn">不在名单</span></button>`;
@@ -960,7 +1009,7 @@ function openNamePicker(row, slot) {
     <div class="list">${listHtml('')}</div>
     <div class="sep"></div>
     <button class="item" data-pick="/"><span>／　这一栏不安排</span></button>
-    <button class="item" data-pick=""><span>清空这一栏</span></button>`);
+    <button class="item" data-pick=""><span>清空这一栏</span></button>`, 306);
   const list = $('.list', p), search = $('.search', p);
   search.addEventListener('input', () => { list.innerHTML = listHtml(search.value); });
   if (!window.matchMedia('(hover:none)').matches) setTimeout(() => search.focus(), 40);
@@ -1703,6 +1752,10 @@ function bindEvents() {
     save(); renderSheet();
   });
   $('#btnAddRow').addEventListener('click', addRow);
+  $('#btnDup').addEventListener('click', () => {
+    state.settings.dupHint = !dupHintOn();
+    save(); renderSheet();
+  });
   $('#btnClean').addEventListener('click', () => toggleClean(true));
   $('#cleanHint').addEventListener('click', () => toggleClean(false));
   $('#btnPrint').addEventListener('click', () => window.print());
